@@ -44,13 +44,13 @@ sh tools/verify_upstream_ios.sh
 
 A successful source audit is not a successful runtime build. The audit reports external/generated build inputs separately.
 
-## Browser 3D test
+## Browser target — actual runtime only
 
-A standalone mobile browser prototype lives in `browser/`. It uses Three.js/WebGL and is separate from the native iOS host and the upstream GTA V runtime. It currently contains a procedural placeholder character, a small generated street scene, touch movement, sprint, and camera drag controls. It is not GTA V and does not execute RAGE.
+There is currently **no playable GTA V/ReXGlue runtime in a browser**. The former Three.js page was a standalone visual prototype and did not execute the upstream game runtime; it is not the browser target and must not be presented as one.
 
-To publish it, enable GitHub Pages once in repository Settings → Pages → Build and deployment → Source: GitHub Actions. The `.github/workflows/browser-pages.yml` workflow then deploys the `browser/` directory on pushes to `minimal-runtime`. Expected site URL: https://shwezoc.github.io/GTA-V-iOS/.
+The active browser-port investigation is tracked in [the RAGE/WebAssembly feasibility audit](docs/BROWSER_RAGE_WASM_FEASIBILITY.md). The first automated experiment checks whether real upstream native-renderer shaders can be translated from SPIR-V to WGSL: [shader probe script](tools/probe_native_shaders_wgsl.sh). Neither experiment is a playable game build.
 
-A real RAGE/WebAssembly browser build does **not** exist yet. The pinned upstream runtime has no WebAssembly target, and its renderer/runtime dependencies need substantial platform and graphics-backend work. See the [verified browser RAGE feasibility audit](docs/BROWSER_RAGE_WASM_FEASIBILITY.md). Do not treat the Three.js page as an RAGE build.
+The browser milestone will only be called complete when the actual upstream runtime executes in WebAssembly or a live native instance streams its real rendered frames to the browser. No generated game code, assets, shaders, or game libraries may be committed or published.
 
 ## Clean-room rules
 1. Do not commit game archives, decrypted executables, keys, generated game C++, compiled game libraries, game shaders, or game data.
