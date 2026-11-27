@@ -8,6 +8,13 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Verify upstream source checkout
+        run: |
+          set -e
+          git submodule status --recursive
+          test -f upstream/gtav-recomp/README.md
       - name: Build iOS app
         run: |
           xcodebuild -project ios/ShwezovGTAV.xcodeproj -scheme ShwezovGTAV -sdk iphoneos -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Game.xcarchive" CODE_SIGNING_ALLOWED=NO archive
