@@ -45,6 +45,10 @@ sh tools/verify_upstream_ios.sh
 
 A successful source audit is not a successful runtime build. The audit reports external/generated build inputs separately.
 
+## Browser interface milestone — GTAV boot, menu and settings
+
+The browser build now includes a GTA V-style boot screen, a navigable main menu, mode selection and a settings panel. The available entry is the existing procedural test scene; Story Mode and GTA Online are visibly marked unavailable until the real game runtime and required user-owned game data are integrated. Graphics quality changes the browser scene render scale, camera sensitivity is applied to camera drag, and settings persist locally in the browser. The boot progress is an interface animation only: it does not load RAGE or GTA V game data. These screens are an original interface implementation and are not Rockstar assets.
+
 ## Browser target — actual runtime only
 
 There is currently **no playable GTA V/ReXGlue runtime in a browser**. The former Three.js page was a standalone visual prototype and did not execute the upstream game runtime; it is not the browser target and must not be presented as one.
