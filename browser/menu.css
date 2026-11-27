@@ -53,31 +53,3 @@ body.menu-playing #main-menu,body.menu-playing #gtav-loading{display:none!import
 
 #gtav-skip{position:absolute;left:50%;top:calc(50% + 52px);transform:translateX(-50%);padding:11px 16px;border:1px solid #ffffff70;background:#171717;color:#fff;font:11px Chalet,Arial,sans-serif;letter-spacing:.5px}
 #gtav-skip[hidden]{display:none}
-
-/* Self-contained illustrated loading composition: no external game assets required. */
-#gtav-loading{background:#10141a}
-.gtav-stage{background:#151923}
-.gtav-artwork{position:absolute;inset:0;overflow:hidden;background:linear-gradient(180deg,#26394b 0%,#b86f58 42%,#e0a36d 61%,#343c42 61.2%,#10171d 100%)}
-.gtav-artwork:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,13,20,.62),transparent 55%,rgba(8,13,20,.18)),linear-gradient(0deg,rgba(4,8,12,.82),transparent 47%);z-index:5}
-.gtav-sun{position:absolute;width:270px;height:270px;border-radius:50%;left:770px;top:82px;background:radial-gradient(circle at 42% 38%,#ffe4b2,#e9a16f 62%,rgba(230,133,91,.12) 72%);box-shadow:0 0 90px #f4a16c88}
-.gtav-city{position:absolute;left:0;right:0;bottom:115px;height:265px;opacity:.88;background:linear-gradient(90deg,transparent 0 3%,#202c35 3% 7%,transparent 7% 9%,#29343b 9% 15%,transparent 15% 17%,#1d2932 17% 23%,transparent 23% 26%,#29343b 26% 32%,transparent 32% 35%,#1d2932 35% 42%,transparent 42% 45%,#26323a 45% 51%,transparent 51% 54%,#202c35 54% 60%,transparent 60% 63%,#29343b 63% 70%,transparent 70% 73%,#1d2932 73% 80%,transparent 80% 83%,#26323a 83% 90%,transparent 90% 93%,#202c35 93% 100%);clip-path:polygon(0 28%,5% 28%,5% 8%,12% 8%,12% 34%,18% 34%,18% 15%,24% 15%,24% 38%,31% 38%,31% 4%,37% 4%,37% 33%,44% 33%,44% 13%,51% 13%,51% 36%,58% 36%,58% 0,64% 0,64% 32%,72% 32%,72% 11%,78% 11%,78% 37%,85% 37%,85% 16%,92% 16%,92% 34%,100% 34%,100% 100%,0 100%)}
-.gtav-city:after{content:"";position:absolute;inset:20px;background:repeating-linear-gradient(90deg,transparent 0 19px,#f6bd7a55 20px 22px,transparent 23px 42px);opacity:.5}
-.gtav-palm{position:absolute;z-index:2;bottom:115px;width:8px;height:350px;background:#141b20;transform-origin:bottom}
-.gtav-palm:before{content:"";position:absolute;left:-125px;top:-20px;width:260px;height:100px;background:repeating-conic-gradient(from 235deg at 50% 100%,#10191d 0deg 9deg,transparent 10deg 19deg);clip-path:polygon(48% 100%,0 12%,44% 68%,20% 0,50% 63%,74% 0,57% 70%,100% 13%,55% 100%)}
-.palm-one{left:135px;transform:rotate(8deg)}.palm-two{right:110px;height:285px;transform:rotate(-9deg)}
-.gtav-figure{position:absolute;z-index:4;bottom:72px;width:150px;height:310px;background:linear-gradient(90deg,#090e13,#25313a 48%,#080d12);clip-path:polygon(38% 0,62% 0,72% 10%,69% 25%,82% 34%,100% 62%,91% 68%,77% 52%,78% 100%,56% 100%,50% 64%,43% 100%,19% 100%,28% 50%,10% 70%,0 64%,20% 35%,30% 25%,28% 10%);filter:drop-shadow(0 8px 18px #000)}
-.figure-one{left:405px;height:355px;width:178px}.figure-two{left:595px;height:285px;width:142px;transform:scaleX(-1);opacity:.9}.figure-three{left:770px;height:325px;width:160px;opacity:.82}
-.gtav-title-lockup{position:absolute;z-index:7;left:82px;top:74px;color:#fff;text-shadow:0 5px 16px #10151c;font-family:Impact,Haettenschweiler,"Arial Narrow Bold",sans-serif;font-style:italic;transform:rotate(-3deg)}
-.gtav-title-small{font-size:50px;line-height:.9;letter-spacing:-2px;text-transform:lowercase}
-.gtav-title-main{font-size:112px;line-height:.9;letter-spacing:-5px}
-.gtav-title-main span{color:#8fbd6a}
-.gtav-title-rule{margin-top:13px;font:700 12px Arial,sans-serif;letter-spacing:5px}
-.gtav-edition{position:absolute;z-index:7;right:48px;top:42px;color:#ffffffa8;font:10px ui-monospace,monospace;letter-spacing:2px}
-.gtav-load-bar{z-index:8;right:45px;bottom:38px;height:35px;background:rgba(5,9,13,.72);padding:0 12px;gap:14px}
-.gtav-load-label{letter-spacing:1px}.gtav-load-percent{font-weight:700}
-.gtav-spinner{border:2px solid #ffffff35;border-top-color:#fff;border-radius:50%;background:none!important;width:18px;height:18px;animation:gtav-spin 1s linear infinite}
-.gtav-load-track{z-index:8;bottom:0;height:4px;background:#ffffff28}
-.gtav-load-fill{background:#8fbd6a;box-shadow:0 0 12px #8fbd6a}
-.gtav-load-status{z-index:8;left:22px;right:auto;bottom:14px;text-align:left;letter-spacing:1px}
-#gtav-skip{z-index:9;left:auto;right:45px;top:38px;transform:none;padding:9px 13px;border-color:#ffffff45;background:#111b22aa;color:#ffffffb8}
-@media(max-width:700px){.gtav-title-lockup{left:48px;top:92px}.gtav-title-small{font-size:42px}.gtav-title-main{font-size:96px}.gtav-figure-one{left:330px}.gtav-figure-two{left:490px}.gtav-figure-three{left:640px}.gtav-edition{display:none}.gtav-load-bar{right:25px;bottom:48px}.gtav-load-status{left:14px;max-width:48%;font-size:8px}}
