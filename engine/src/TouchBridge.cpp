@@ -29,6 +29,3 @@ void GameTouchEnded(int index) {
 }
 
 }
-}
-}
-}
