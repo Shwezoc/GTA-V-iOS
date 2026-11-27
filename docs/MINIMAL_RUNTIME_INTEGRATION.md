@@ -34,8 +34,9 @@ Do not invent function names or call an upstream API until its current headers a
 
 - The current iOS target has no upstream runtime libraries, generated game code, renderer backend, or shader artifacts linked.
 - The upstream build is a cross-compilation/package pipeline and is not an iPhone-only compilation process.
-- The upstream project's published device baseline is newer than iPhone 11. The iPhone 11's A13/4 GB configuration is below the stated baseline; successful launch and stable memory use are unverified.
-- Game executable/data must come from the user's own legally obtained copy. This repository must not contain proprietary game archives, keys, or extracted game assets.
+- The upstream README specifies iPhone 12 or newer (A14+), iOS 17+, and about 17 GB free. Its iOS port notes use an A14 compile target, while the documented test device is an A15 iPhone 13 mini. The iPhone 11 (A13) is below the published device baseline; a working build or stable runtime on it is not established.
+- The upstream iPhone pipeline explicitly requires a computer for the one-time game-code cross-compilation and shader translation; iOS itself does not perform those steps. The current GitHub Actions job only archives this repository's Swift shell and is not a substitute for that pipeline.
+- The documented input is the user's own GTA V Xbox 360 Disc 1, Disc 2, and Title Update 27 (TU27). Use only game data legally obtained by the user. This repository must not contain proprietary game archives, keys, or extracted game assets.
 
 ## Next engineering gate
 
