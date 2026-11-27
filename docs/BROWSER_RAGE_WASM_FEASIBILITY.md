@@ -157,3 +157,18 @@ Two first rewrites are now in `webgpu/shaders/`:
 - `native_memory_segmented.wgsl`: replaces the 64-bit GPU address / `vk::RawBufferStore` path with a bounded storage-buffer binding and 32-bit segment-relative byte offset.
 
 These are shader-level prototypes only. They are not yet wired into Plume or the GTAV renderer. Both now pass Naga WGSL validation in [probe run #46004467066](https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46004467066). This confirms syntax/IR validation only; it does not prove runtime binding compatibility, pixel equivalence, or a functioning WebGPU backend.
+
+
+## Shader portability probe result (2026-11-27)
+
+GitHub Actions run [RAGE WebGPU Shader Translation Probe #46004467066](https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46004467066) completed successfully as a diagnostic job. The job itself passed because it correctly reports unsupported upstream shaders rather than treating them as successful translations.
+
+Observed results:
+- `native_resolve_fetch.vert`: SPIR-V -> WGSL translation and WGSL validation **PASS**.
+- `native_resolve_compute.comp`: **BLOCKED**. Naga rejects storage image read/write without a format (`StorageImageWriteWithoutFormat`); unknown non-uniform indexing capabilities/decorations are also reported.
+- `native_resolve_fetch.frag`: **BLOCKED**. Naga rejects Vulkan input attachments (`InputAttachment`, `InputAttachmentIndex`) and an unsupported image dimension.
+- Two separately authored WebGPU WGSL variants (`native_memory_segmented` and `native_resolve_compute_rgba16float`) pass Naga validation. These are compatibility probes, not evidence that the upstream renderer has been ported.
+
+Artifact: `rage-webgpu-shader-probe` (13 files, 6,906 bytes), attached to the workflow run.
+
+Conclusion: the probe demonstrates that a small part of the native shader path is translatable, but the native resolve compute/fragment path needs explicit WebGPU redesign. The successful workflow status must not be interpreted as a successful RAGE browser build.
