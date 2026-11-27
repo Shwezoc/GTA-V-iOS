@@ -117,3 +117,23 @@ The first code work should be split into independently testable gates rather tha
 | WebGPU | Supported | A WebGPU backend is technically possible, but feature/limit validation is still required |
 
 The Memory64 restriction makes a wasm32-compatible guest-memory design a requirement if iPhone Safari is a target. A desktop-only wasm64 build would not meet the user's iPhone browser goal.
+
+
+## WebGPU backend mapping — native renderer call surface
+
+A source scan of `gtav/src/native/backend.cpp` found 41 distinct Plume operation names used by the current native backend. The following are the main browser-backend translations to implement or explicitly gate:
+
+| Existing Plume operation | WebGPU direction | Status / caveat |
+|---|---|---|
+| Buffers, textures, texture views | `GPUBuffer`, `GPUTexture`, `GPUTextureView` | Feasible, but guest-addressed buffers need a new binding model |
+| Descriptor sets and dynamic offsets | `GPUBindGroupLayout`, `GPUBindGroup`, dynamic buffer offsets | Feasible with a resource-binding redesign; descriptor arrays are feature-gated |
+| Graphics and compute pipelines | `GPURenderPipeline`, `GPUComputePipeline` | Requires WGSL shaders and layout translation |
+| Command lists, draw, dispatch, copies | `GPUCommandEncoder`, render/compute pass encoders | Feasible, but explicit Vulkan barriers become WebGPU usage/state validation |
+| Swapchain and present | Canvas `GPUCanvasContext` + current texture | Feasible; browser resize and device-loss lifecycle required |
+| Occlusion/timestamp queries | `GPUQuerySet` | Occlusion is available; timestamp queries are optional and must be capability-gated |
+| GPU device addresses / raw buffer stores | No direct equivalent | Must rewrite shader ABI and storage-buffer access |
+| Fragment shading rate | No general core equivalent | Disable or provide a quality fallback |
+| Vulkan input attachments / subpass load | No direct equivalent | Keep fetch-resolve path disabled or split into separate passes |
+| Ray-tracing interfaces | No WebGPU core equivalent | Can be rejected if the GTAV renderer does not invoke them |
+
+This is a backend implementation plan, not evidence that any of these WebGPU operations are implemented yet.
