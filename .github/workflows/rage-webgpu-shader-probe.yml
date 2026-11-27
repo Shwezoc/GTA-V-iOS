@@ -1,0 +1,48 @@
+name: RAGE WebGPU Shader Translation Probe
+
+on:
+  push:
+    branches: [minimal-runtime]
+    paths:
+      - "upstream/gtav-recomp"
+      - "tools/probe_native_shaders_wgsl.sh"
+      - ".github/workflows/rage-webgpu-shader-probe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rage-webgpu-shader-probe-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe-native-shaders:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout pinned upstream source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install GLSL compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y glslang-tools
+
+      - name: Install Naga SPIR-V to WGSL translator
+        run: |
+          cargo install naga-cli --locked
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - name: Probe actual upstream native renderer shaders
+        run: bash tools/probe_native_shaders_wgsl.sh "$RUNNER_TEMP/webgpu-shader-probe"
+
+      - name: Upload shader portability report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rage-webgpu-shader-probe
+          path: ${{ runner.temp }}/webgpu-shader-probe/
+          if-no-files-found: error
