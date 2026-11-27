@@ -88,7 +88,7 @@
     if(started) return;
     started=true;
     fit(); addEventListener('resize',fit);
-    const required=['logo.png','spinner.png','chalet.woff'];
+    const required=['logo.png','spinner.png','chalet.woff','art/beach_bg.webp','art/beach_fg.webp','art/ls0_background.webp','art/ls0_foreground.webp','art/ls1_background.webp','art/ls1_foreground.webp','art/ls1_foreground_franklin.webp'];
     const checks=await Promise.all(required.map(async file=>{
       try{const response=await fetch(base+file,{method:'HEAD',cache:'no-store'});return response.ok;}
       catch(_){return false;}
