@@ -4,7 +4,7 @@ document.querySelector('#game').appendChild(canvas);
 const loading=document.querySelector('#loading');
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 let W=0,H=0,DPR=1;
-function resize(){DPR=Math.min(devicePixelRatio||1,1.25);W=innerWidth;H=innerHeight;canvas.width=Math.round(W*DPR);canvas.height=Math.round(H*DPR);canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(DPR,0,0,DPR,0,0)}
+function resize(){DPR=Math.min((devicePixelRatio||1)*(window.GTAVRenderScale||.85),1.5);W=innerWidth;H=innerHeight;canvas.width=Math.round(W*DPR);canvas.height=Math.round(H*DPR);canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(DPR,0,0,DPR,0,0)}
 addEventListener('resize',resize);resize();
 const player={x:0,z:2,yaw:0};
 let cameraYaw=0,cameraPitch=.18,running=false,axisX=0,axisY=0,lookPointer=null,lastX=0,lastY=0;
@@ -23,7 +23,7 @@ runBtn.addEventListener('pointerdown',()=>{running=true;runBtn.classList.add('ac
 for(const ev of ['pointerup','pointercancel','pointerleave'])runBtn.addEventListener(ev,()=>{running=false;runBtn.classList.remove('active')});
 document.querySelector('#reset').addEventListener('click',()=>{player.x=0;player.z=2;player.yaw=0;cameraYaw=0;cameraPitch=.18});
 canvas.addEventListener('pointerdown',e=>{if(e.clientX<W*.35&&e.clientY>H*.55)return;lookPointer=e.pointerId;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture(lookPointer)});
-canvas.addEventListener('pointermove',e=>{if(e.pointerId!==lookPointer)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;cameraYaw-=dx*.006;cameraPitch=clamp(cameraPitch+dy*.003,-.12,.65)});
+canvas.addEventListener('pointermove',e=>{if(e.pointerId!==lookPointer)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;cameraYaw-=dx*.006*(window.GTAVCameraSensitivity||1);cameraPitch=clamp(cameraPitch+dy*.003*(window.GTAVCameraSensitivity||1),-.12,.65)});
 for(const ev of ['pointerup','pointercancel'])canvas.addEventListener(ev,()=>lookPointer=null);
 const buildings=[];
 for(let i=0;i<34;i++){const side=i%2?1:-1,z=8-Math.floor(i/2)*6.2,w=3.2+(i%3)*.8,h=4+(i*7%9),d=3.2+(i%2);buildings.push({x:side*(9+(i%3)*2),z,w,h,d,c:['#596875','#777c7c','#4a5b68','#8b8274'][i%4]})}
