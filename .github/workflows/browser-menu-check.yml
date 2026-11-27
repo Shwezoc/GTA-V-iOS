@@ -1,0 +1,35 @@
+name: Browser Menu Validation
+on:
+  push:
+    branches: [minimal-runtime]
+    paths:
+      - "browser/**"
+      - ".github/workflows/browser-menu-check.yml"
+  pull_request:
+    paths:
+      - "browser/**"
+      - ".github/workflows/browser-menu-check.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate browser menu files
+        run: |
+          set -eu
+          test -s browser/index.html
+          test -s browser/main.js
+          test -s browser/menu.js
+          test -s browser/menu.css
+          node --check browser/main.js
+          node --check browser/menu.js
+          grep -q 'id="boot-screen"' browser/index.html
+          grep -q 'id="settings-panel"' browser/index.html
+          grep -q 'id="mode-panel"' browser/index.html
+          echo "Browser boot/menu/settings/mode UI validation passed."
