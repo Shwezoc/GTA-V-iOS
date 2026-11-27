@@ -49,7 +49,7 @@ A successful source audit is not a successful runtime build. The audit reports e
 
 There is currently **no playable GTA V/ReXGlue runtime in a browser**. The former Three.js page was a standalone visual prototype and did not execute the upstream game runtime; it is not the browser target and must not be presented as one.
 
-The active browser-port investigation is tracked in [the RAGE/WebAssembly feasibility audit](docs/BROWSER_RAGE_WASM_FEASIBILITY.md). The first automated experiment checks whether real upstream native-renderer shaders can be translated from SPIR-V to WGSL: [shader probe script](tools/probe_native_shaders_wgsl.sh). Neither experiment is a playable game build.
+The active browser-port investigation is tracked in [the RAGE/WebAssembly feasibility audit](docs/BROWSER_RAGE_WASM_FEASIBILITY.md). The [shader probe](tools/probe_native_shaders_wgsl.sh) confirms that the simple upstream vertex shader converts to WGSL, while the Vulkan compute-resolve and input-attachment shaders need explicit rewrites. Two first WGSL rewrites now pass Naga validation, but they are not yet integrated into Plume. None of this is a playable game build.
 
 The browser milestone will only be called complete when the actual upstream runtime executes in WebAssembly or a live native instance streams its real rendered frames to the browser. No generated game code, assets, shaders, or game libraries may be committed or published.
 
