@@ -95,6 +95,32 @@ jobs:
           cp "$GTAV_BIN" rage-ios-runtime/gtav
           cp "$REX_RUNTIME" rage-ios-runtime/
           cp "$REX_GPU" rage-ios-runtime/
+
+          # Audit the actual iOS binaries before publishing the no-game-data artifact.
+          {
+            echo "=== Binary formats ==="
+            file rage-ios-runtime/gtav rage-ios-runtime/librexruntime.dylib rage-ios-runtime/librexgpu-xenos.dylib
+            echo
+            echo "=== Architectures ==="
+            for binary in rage-ios-runtime/gtav rage-ios-runtime/librexruntime.dylib rage-ios-runtime/librexgpu-xenos.dylib; do
+              archs="$(lipo -archs "$binary")"
+              echo "$binary: $archs"
+              case " $archs " in *" arm64 "*) ;; *) echo "ERROR: $binary is not arm64"; exit 1 ;; esac
+            done
+            echo
+            echo "=== Executable dynamic dependencies ==="
+            otool -L rage-ios-runtime/gtav
+            echo
+            echo "=== Runtime library dependencies ==="
+            otool -L rage-ios-runtime/librexruntime.dylib
+            otool -L rage-ios-runtime/librexgpu-xenos.dylib
+          } | tee rage-ios-runtime/BINARY-AUDIT.txt
+
+          otool -L rage-ios-runtime/gtav | grep -q 'gtav_game.dylib' || {
+            echo "ERROR: shell executable does not reference the expected separately generated game library"
+            exit 1
+          }
+
           cat > rage-ios-runtime/BUILD-STATUS.txt <<'EOF'
           Upstream RAGE-compatible GTA V host and ReXGlue iOS runtime shell.
           This is NOT a playable GTA V IPA.
