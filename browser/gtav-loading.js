@@ -9,6 +9,7 @@
   const percent=root.querySelector('.gtav-load-percent');
   const fill=root.querySelector('.gtav-load-fill');
   const status=root.querySelector('.gtav-load-status');
+  const skip=root.querySelector('#gtav-skip');
   const base='./assets/gtav-loading/title/';
   const art=base+'art/';
   const scenes=[
@@ -82,6 +83,7 @@
       document.body.classList.add('menu-open');
     },850);
   };
+  skip.addEventListener('click',showMenu);
   const start=async()=>{
     if(started) return;
     started=true;
@@ -96,6 +98,7 @@
       label.textContent='ОЖИДАЮ ИГРОВЫЕ ТЕКСТУРЫ';
       percent.textContent='—'; fill.style.width='0';
       root.classList.add('assets-missing');
+      skip.hidden=false;
       return;
     }
     logo.src=base+'logo.png'; spinner.style.backgroundImage='url("'+base+'spinner.png")';
