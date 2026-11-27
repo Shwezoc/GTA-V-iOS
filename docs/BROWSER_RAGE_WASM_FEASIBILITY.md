@@ -34,9 +34,10 @@ A genuine browser port is a separate engine-porting project, not a build-flag ch
    - The runtime currently produces and consumes SPIR-V for Vulkan.
    - Browser WebGPU needs a compatible WebGPU shader path, normally WGSL. A port must translate/validate the guest shader output and all renderer shaders against WebGPU's supported feature set; merely copying SPIR-V files into a web package is not sufficient.
 
-4. **Platform services**
-   - The runtime uses SDL3 for windowing, input, and audio, but the SDK's UI platform source selection currently covers Windows, Apple, and Linux.
-   - Browser-specific lifecycle, file access, threading, audio, input, and persistent storage need explicit handling.
+4. **Platform services and build graph**
+   - The SDK's `src/core/CMakeLists.txt` selects native Windows sources or a generic `elseif(UNIX)` POSIX set, including fibers, mapped memory, exception handling, sockets, and threading. Emscripten may satisfy broad UNIX checks, but browser Wasm is not a normal POSIX process; these sources need explicit browser replacements or exclusions.
+   - The SDK's `src/ui/CMakeLists.txt` selects Vulkan UI sources and, on non-Apple Unix, requires X11/XCB and Wayland packages. That Linux desktop path must be excluded from a browser build and replaced with browser presentation/input.
+   - The runtime uses SDL3 for windowing, input, and audio. SDL3's browser platform can cover part of this, but browser lifecycle, file access, threading, audio activation, and persistent storage still need explicit handling.
 
 5. **No playable game payload in the current CI artifact**
    - The latest RAGE iOS job builds `gtav_fast`, `librexruntime.dylib`, and `librexgpu-xenos.dylib` for arm64.
@@ -87,3 +88,25 @@ Do not mark the browser milestone complete until all are true:
 - Safari on iOS 27.2 supports WebGPU, but WebGPU feature/limit parity must be validated on the actual device. See [Safari 27 release notes](https://developer.apple.com/documentation/safari-release-notes/safari-27-release-notes).
 - Memory64 is not supported by Safari/iOS Safari 27.2. See [Memory64 browser support](https://caniuse.com/wf-wasm-memory64).
 - This makes the current native 64-bit host assumptions a direct iPhone-browser blocker unless the guest-memory layer is redesigned for wasm32. WebGPU availability alone does not solve it.
+
+
+## First implementation sequence (code-level)
+
+The first code work should be split into independently testable gates rather than attempting a full GTA V link immediately:
+
+1. **Emscripten platform configure gate:** introduce an explicit `REX_PLATFORM_WEB`/Emscripten branch in the SDK build system, disable native X11/Wayland and Vulkan-only targets, and produce a configure report listing every unsupported source/target. Do not silently route Emscripten through the generic POSIX branch.
+2. **Guest-memory prototype:** implement a browser memory arena and guest-address translation for a tiny test that reserves, commits, protects, and releases guest pages. The prototype must not claim compatibility until it passes the SDK's memory tests without native `mmap` assumptions.
+3. **Plume WebGPU vertical slice:** implement only the RHI subset needed for a clear + triangle + indexed draw, with WGSL shaders, swapchain resize, and device-loss handling. Keep this as a Plume backend test, not a GTA/RAGE milestone.
+4. **GTAV renderer backend selection:** replace the hard-coded Vulkan factory and SPIR-V-only shader creation path with an explicit backend/shader interface. The Vulkan path must remain unchanged and continue passing its existing tests.
+5. **Xenos shader path:** add WGSL generation/translation for the Xenos guest shaders and validate format, integer, texture, and synchronization semantics against known-good Vulkan output.
+6. **Actual runtime integration:** only after gates 1–5 pass, build the browser host and run the real GTAV runtime with locally supplied compatible game data. The first accepted result is a logged real runtime frame, not a mock scene.
+
+### iPhone browser support constraints
+
+| Capability in Safari on iOS 27.2 | Status | Port consequence |
+|---|---|---|
+| WebAssembly (wasm32) | Supported | Basic Wasm modules can run |
+| Memory64 (wasm64) | Not supported | Cannot rely on a 64-bit-pointer Emscripten build on iPhone Safari |
+| WebGPU | Supported | A WebGPU backend is technically possible, but feature/limit validation is still required |
+
+The Memory64 restriction makes a wasm32-compatible guest-memory design a requirement if iPhone Safari is a target. A desktop-only wasm64 build would not meet the user's iPhone browser goal.
