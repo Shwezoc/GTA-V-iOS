@@ -45,9 +45,13 @@ sh tools/verify_upstream_ios.sh
 
 A successful source audit is not a successful runtime build. The audit reports external/generated build inputs separately.
 
-## Browser interface milestone — GTAV boot, menu and settings
+## Browser interface milestone — GTA V loading composition
 
-The browser build now includes a GTA V-style boot screen, a navigable main menu, mode selection and a settings panel. The available entry is the existing procedural test scene; Story Mode and GTA Online are visibly marked unavailable until the real game runtime and required user-owned game data are integrated. Graphics quality changes the browser scene render scale, camera sensitivity is applied to camera drag, and settings persist locally in the browser. The boot progress is an interface animation only: it does not load RAGE or GTA V game data. These screens are an original interface implementation and are not Rockstar assets.
+The former generic text-logo boot card has been replaced by a layered `LOADINGSCREEN_STARTUP` renderer based on the publicly documented 1280×720 composition, independent image planes, perspective cameras and slide transitions reconstructed in [shadany7824/playgta5](https://github.com/shadany7824/playgta5). The implementation is original project code; it does not copy that repository's full page or redistribute Rockstar assets.
+
+**Original game textures are not included.** To display the actual artwork, supply the local files listed in [browser/assets/gtav-loading/README.md](browser/assets/gtav-loading/README.md). The proprietary asset directory is git-ignored and must remain out of public commits and Pages artifacts. When the files are absent, the loader shows an explicit missing-assets diagnostic instead of a fabricated GTA V logo. Current manifest includes the beach opening composition and two further layered screens.
+
+The loading percentage is illustrative interface progress, not a measurement of RAGE startup or game-data loading. The existing main menu, mode selection and settings remain available after the loading sequence. Story Mode and GTA Online remain unavailable until the real runtime and legally sourced game data are integrated.
 
 ## Browser target — actual runtime only
 
