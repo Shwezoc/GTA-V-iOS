@@ -84,7 +84,7 @@ jobs:
 
       - name: Collect runtime shell (not a playable game)
         run: |
-          set -e
+          set -euo pipefail
           mkdir -p rage-ios-runtime
           GTAV_BIN="$(find upstream/gtav-recomp/build/ios-shell -type f -name gtav_fast -perm -111 -print -quit)"
           REX_RUNTIME="$(find upstream/gtav-recomp/rexglue-sdk/out/install/ios-arm64 -type f -name librexruntime.dylib -print -quit)"
