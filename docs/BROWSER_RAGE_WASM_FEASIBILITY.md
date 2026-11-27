@@ -18,15 +18,16 @@ A genuine browser port is a separate engine-porting project, not a build-flag ch
    - The pinned SDK CMake project recognizes Windows, Linux, and Apple platforms; other systems fail platform detection.
    - It explicitly requires 64-bit pointers.
    - The POSIX memory implementation relies on `mmap`, fixed-address mappings, `mprotect`, shared file mappings, and executable-memory behavior. Those semantics do not map directly to browser WebAssembly linear memory.
-   - Emscripten can emit 64-bit-pointer builds, but that does not make browser linear memory behave like a native process address space or provide the fixed mappings the guest-memory implementation expects. Full Memory64 support is available in current desktop Chromium/Firefox, but is not supported by Safari/iOS Safari as of this audit. Safari on iOS 27.2 does expose WebGPU, but that does not remove the memory-model blocker.
+   - Emscripten can emit 64-bit-pointer builds, but that does not make browser linear memory behave like a native process address space or provide the fixed mappings the guest-memory implementation expects. Memory64 is supported by current Chromium/Firefox but is not supported by Safari/iOS Safari 27.2. A browser build intended for iPhone therefore cannot assume Memory64; it would need either a 32-bit host-pointer port with a redesigned guest-address translation layer, or a browser/runtime constraint that excludes iPhone Safari.
 
 2. **No WebGPU renderer in Plume**
    - The upstream Plume build contains Vulkan as its portable backend, Metal on Apple, and D3D12 on Windows.
    - There is no WebGPU backend in the inspected source tree.
    - Emscripten does not automatically translate Vulkan calls into WebGPU. A real port needs a new WebGPU implementation of the Plume render-device interface (or a separately maintained translation layer).
-   - Safari/iOS WebGPU support is still listed as partial, so the WebGPU feature set and device-loss behavior need explicit validation on the target iPhone.
-   - The Plume RHI contract is broad: buffers and texture views, descriptor sets, graphics/compute pipelines, command lists and barriers, swapchains, fences/semaphores, query pools, plus ray-tracing interfaces. A WebGPU backend must implement the subset the GTAV renderer actually calls and explicitly reject unsupported paths; it is not just a canvas-present function.
-   - The inspected GTAV renderer creates SPIR-V shader modules and graphics/compute pipelines. Its rectangle-list path already has a CPU fallback when geometry shaders are unavailable, which is promising for WebGPU; compute resolves and the renderer's descriptor/resource model still need a real backend implementation.
+   - WebGPU is available in Safari on iOS 27, but implementation support and limits still need device-level validation on the target iPhone. Safari 27 release notes continue to list WebGPU fixes, so the backend must handle validation errors and device loss rather than assuming desktop parity.
+   - The Plume RHI contract has 103 pure-virtual methods across its resource, pipeline, command, queue, and device interfaces. It covers buffers and texture views, descriptor sets, graphics/compute pipelines, command lists and barriers, swapchains, fences/semaphores, query pools, plus ray-tracing interfaces. A WebGPU backend must implement the subset the GTAV renderer actually calls and explicitly reject unsupported paths; it is not just a canvas-present function.
+   - The inspected GTAV renderer hard-codes `CreateVulkanInterface()` in `gtav/src/native/renderer.cpp` and creates shaders with `RenderShaderFormat::SPIRV` in `gtav/src/native/backend.cpp`. A browser backend therefore needs a renderer factory change as well as a shader-format path; adding a WebGPU implementation to Plume alone will not make GTAV select it.
+   - Plume's current `RenderShaderFormat` enum contains only `DXIL`, `SPIRV`, and `METAL`; it has no `WGSL` option. WebGPU's browser shader path needs WGSL-compatible modules. The renderer's rectangle-list path already has a CPU fallback when geometry shaders are unavailable, which is promising; compute resolves and the renderer's descriptor/resource model still need a real backend implementation.
    - The Xenos GPU plugin is currently built with Vulkan SPIR-V/Vulkan sources when `REXGLUE_USE_VULKAN` is enabled, while the GTAV host links the plugin for shader/texture helpers. A browser build must either port the needed plugin functionality or split out a genuinely platform-neutral helper target.
 
 3. **Shader pipeline mismatch**
@@ -75,5 +76,14 @@ Do not mark the browser milestone complete until all are true:
 - Upstream `gtav/CMakeLists.txt`: the GTAV host links Plume and the Xenos GPU plugin; iOS uses the native runtime path.
 - ReXGlue SDK `CMakeLists.txt`: platform detection and 64-bit pointer requirement.
 - ReXGlue SDK `src/graphics/CMakeLists.txt` and `src/ui/CMakeLists.txt`: Vulkan/D3D12 backend selection and platform-specific UI sources.
-- Plume `CMakeLists.txt`: Vulkan, Apple Metal, and Windows D3D12 sources; no WebGPU backend.
+- Plume `CMakeLists.txt` and `plume_render_interface.h`: Vulkan, Apple Metal, and Windows D3D12 sources; no WebGPU backend; 103 pure-virtual RHI methods.
+- Plume `plume_render_interface_types.h`: shader formats are DXIL, SPIR-V, and Metal; no WGSL.
+- GTAV `gtav/src/native/renderer.cpp` and `gtav/src/native/backend.cpp`: Vulkan interface is selected directly and native shaders are requested as SPIR-V.
 - Upstream `docs/IOS_PORT.md` and the successful CI build log: the iOS shell is not a playable game and requires separately generated private game outputs.
+
+
+## Target-browser compatibility snapshot
+
+- Safari on iOS 27.2 supports WebGPU, but WebGPU feature/limit parity must be validated on the actual device. See [Safari 27 release notes](https://developer.apple.com/documentation/safari-release-notes/safari-27-release-notes).
+- Memory64 is not supported by Safari/iOS Safari 27.2. See [Memory64 browser support](https://caniuse.com/wf-wasm-memory64).
+- This makes the current native 64-bit host assumptions a direct iPhone-browser blocker unless the guest-memory layer is redesigned for wasm32. WebGPU availability alone does not solve it.
