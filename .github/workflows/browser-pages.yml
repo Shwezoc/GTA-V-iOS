@@ -1,4 +1,4 @@
-name: Legacy Three.js Demo (not RAGE)
+name: Browser Menu and Runtime Test Lab
 on:
   workflow_dispatch:
 permissions:
@@ -23,7 +23,10 @@ jobs:
           test -s browser/index.html
           test -s browser/style.css
           test -s browser/main.js
+          test -s browser/menu.js
+          test -s browser/menu.css
           node --check browser/main.js
+          node --check browser/menu.js
           touch browser/.nojekyll
       - name: Configure Pages
         uses: actions/configure-pages@v5
