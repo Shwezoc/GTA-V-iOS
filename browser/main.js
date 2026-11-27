@@ -84,7 +84,7 @@ for(const ev of ['pointerup','pointercancel','pointerleave'])runBtn.addEventList
 document.querySelector('#reset').addEventListener('click',()=>{player.root.position.set(0,0,2);yaw=0;cameraYaw=0;cameraPitch=.22});
 let lookPointer=null,lastX=0,lastY=0;
 renderer.domElement.addEventListener('pointerdown',e=>{if(e.clientX<innerWidth*.35&&e.clientY>innerHeight*.55)return;lookPointer=e.pointerId;lastX=e.clientX;lastY=e.clientY;renderer.domElement.setPointerCapture(lookPointer)});
-renderer.domElement.addEventListener('pointermove',e=>{if(e.pointerId!==lookPointer)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;cameraYaw-=dx*.006;cameraPitch=Math.max(-.15,Math.min(.8,cameraPitch+dy*.004)});
+renderer.domElement.addEventListener('pointermove',e=>{if(e.pointerId!==lookPointer)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;cameraYaw-=dx*.006;cameraPitch=Math.max(-.15,Math.min(.8,cameraPitch+dy*.004));
 for(const ev of ['pointerup','pointercancel'])renderer.domElement.addEventListener(ev,()=>lookPointer=null);
 const clock=new THREE.Clock();
 function frame(){
