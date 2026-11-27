@@ -9,6 +9,10 @@ on:
       - "tools/prepare_upstream_ios_deps.sh"
       - ".github/workflows/rage-ios-runtime.yml"
 
+concurrency:
+  group: rage-ios-runtime-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   actions: write
