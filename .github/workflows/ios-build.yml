@@ -8,27 +8,19 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build iOS device archive
+      - name: Build iOS app
         run: |
-          xcodebuild \
-            -project ios/ShwezovGTAV.xcodeproj \
-            -scheme ShwezovGTAV \
-            -sdk iphoneos \
-            -configuration Release \
-            -destination 'generic/platform=iOS' \
-            -archivePath "$RUNNER_TEMP/Game.xcarchive" \
-            CODE_SIGNING_ALLOWED=NO archive
+          xcodebuild -project ios/ShwezovGTAV.xcodeproj -scheme ShwezovGTAV -sdk iphoneos -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Game.xcarchive" CODE_SIGNING_ALLOWED=NO archive
       - name: Package IPA
         run: |
           set -e
           APP="$RUNNER_TEMP/Game.xcarchive/Products/Applications/ShwezovGTAV.app"
           test -d "$APP"
-          mkdir -p "$RUNNER_TEMP/ipa/Payload"
-          cp -R "$APP" "$RUNNER_TEMP/ipa/Payload/"
-          cd "$RUNNER_TEMP/ipa"
-          zip -qry "$GITHUB_WORKSPACE/ShwezovGTAV.ipa" Payload
+          mkdir -p Payload
+          cp -R "$APP" Payload/
+          zip -qry ShwezovGTAV.ipa Payload
       - uses: actions/upload-artifact@v4
         with:
           name: ShwezovGTAV-IPA
           path: ShwezovGTAV.ipa
-          if-no-files-found: error
+EOF
