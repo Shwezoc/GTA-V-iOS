@@ -18,12 +18,13 @@ A genuine browser port is a separate engine-porting project, not a build-flag ch
    - The pinned SDK CMake project recognizes Windows, Linux, and Apple platforms; other systems fail platform detection.
    - It explicitly requires 64-bit pointers.
    - The POSIX memory implementation relies on `mmap`, fixed-address mappings, `mprotect`, shared file mappings, and executable-memory behavior. Those semantics do not map directly to browser WebAssembly linear memory.
-   - Standard browser Wasm is currently a 32-bit memory model in mainstream deployments; Wasm64 is not a safe baseline for a public browser target.
+   - Emscripten can emit 64-bit-pointer builds, but that does not make browser linear memory behave like a native process address space or provide the fixed mappings the guest-memory implementation expects. Full Memory64 support is available in current desktop Chromium/Firefox, but is not supported by Safari/iOS Safari as of this audit. Safari on iOS 27.2 does expose WebGPU, but that does not remove the memory-model blocker.
 
 2. **No WebGPU renderer in Plume**
    - The upstream Plume build contains Vulkan as its portable backend, Metal on Apple, and D3D12 on Windows.
    - There is no WebGPU backend in the inspected source tree.
    - Emscripten does not automatically translate Vulkan calls into WebGPU. A real port needs a new WebGPU implementation of the Plume render-device interface (or a separately maintained translation layer).
+   - Safari/iOS WebGPU support is still listed as partial, so the WebGPU feature set and device-loss behavior need explicit validation on the target iPhone.
 
 3. **Shader pipeline mismatch**
    - The runtime currently produces and consumes SPIR-V for Vulkan.
