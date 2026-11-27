@@ -68,6 +68,23 @@ jobs:
           cmake --build out/build/ios-arm64 --parallel 3
           cmake --install out/build/ios-arm64
 
+      - name: Build upstream MoltenVK for iOS
+        run: |
+          set -euo pipefail
+          MVK_ROOT="$RUNNER_TEMP/MoltenVK"
+          git clone --depth 1 --branch v1.4.2 https://github.com/KhronosGroup/MoltenVK.git "$MVK_ROOT"
+          cd "$MVK_ROOT"
+          ./fetchDependencies --ios
+          make ios
+          MVK_BIN="$(find Package -type f -path '*/ios-arm64/MoltenVK.framework/MoltenVK' -print -quit)"
+          test -n "$MVK_BIN" || { echo "ERROR: iOS MoltenVK framework binary not found"; find Package -maxdepth 8 -type f -print; exit 1; }
+          mkdir -p "$RUNNER_TEMP/moltenvk-output"
+          cp "$MVK_BIN" "$RUNNER_TEMP/moltenvk-output/libMoltenVK.dylib"
+          echo "MOLTENVK_BINARY=$RUNNER_TEMP/moltenvk-output/libMoltenVK.dylib" >> "$GITHUB_ENV"
+          file "$RUNNER_TEMP/moltenvk-output/libMoltenVK.dylib"
+          lipo -archs "$RUNNER_TEMP/moltenvk-output/libMoltenVK.dylib" | grep -qw arm64
+          cp LICENSE "$RUNNER_TEMP/moltenvk-output/MOLTENVK-LICENSE.txt"
+
       - name: Configure upstream GTA V iOS shell
         working-directory: upstream/gtav-recomp/gtav
         run: |
@@ -104,6 +121,9 @@ jobs:
           cp "$GTAV_BIN" rage-ios-runtime/gtav
           cp "$REX_RUNTIME" rage-ios-runtime/
           cp "$REX_GPU" rage-ios-runtime/
+          test -f "$MOLTENVK_BINARY" || { echo "ERROR: MoltenVK iOS binary is missing"; exit 1; }
+          cp "$MOLTENVK_BINARY" rage-ios-runtime/libMoltenVK.dylib
+          cp "$RUNNER_TEMP/moltenvk-output/MOLTENVK-LICENSE.txt" rage-ios-runtime/
 
           # Audit the actual iOS binaries before publishing the no-game-data artifact.
           {
@@ -116,6 +136,10 @@ jobs:
               echo "$binary: $archs"
               case " $archs " in *" arm64 "*) ;; *) echo "ERROR: $binary is not arm64"; exit 1 ;; esac
             done
+            echo
+            echo "=== MoltenVK architecture and dependencies ==="
+            lipo -archs rage-ios-runtime/libMoltenVK.dylib
+            otool -L rage-ios-runtime/libMoltenVK.dylib
             echo
             echo "=== Executable dynamic dependencies ==="
             otool -L rage-ios-runtime/gtav
@@ -135,8 +159,10 @@ jobs:
           CPU compile target: ${{ matrix.cpu_target }}.
           apple-a13 is an experimental compatibility build, not an upstream-supported device guarantee.
           This is NOT a playable GTA V IPA.
+          It includes the upstream iOS host shell, ReXGlue runtime libraries,
+          and an independently built open-source MoltenVK iOS library.
           It contains no Rockstar game code, game data, generated game library,
-          game shaders, MoltenVK framework, or app signing.
+          game shaders, or app signing.
           A compatible device and locally supplied game data/build outputs are still required.
           EOF
 
