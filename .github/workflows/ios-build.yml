@@ -2,7 +2,18 @@ name: iOS Diagnostic Shell Build (not GTA V runtime)
 on:
   push:
     branches: [main, minimal-runtime]
+    paths:
+      - "ios/**"
+      - "upstream/gtav-recomp"
+      - "tools/verify_upstream_ios.sh"
+      - "tools/prepare_upstream_ios_deps.sh"
+      - ".github/workflows/ios-build.yml"
   workflow_dispatch:
+
+concurrency:
+  group: ios-diagnostic-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: macos-latest
