@@ -1,0 +1,3 @@
+[submodule "upstream/gtav-recomp"]
+	path = upstream/gtav-recomp
+	url = https://github.com/andrewnakas/gtav-recomp.git
