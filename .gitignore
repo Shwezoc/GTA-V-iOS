@@ -1,0 +1,21 @@
+# Xcode
+DerivedData/
+*.xcuserstate
+xcuserdata/
+.build/
+
+# macOS
+.DS_Store
+
+# Build outputs
+build/
+out/
+*.o
+*.a
+*.dSYM/
+
+# Proprietary game data — never commit
+GameData/
+*.rpf
+*.pak
+*.obb
