@@ -12,7 +12,7 @@ Experimental iOS porting and compatibility workspace.
 - Portable core: C++17
 
 ## Current status
-Initial project scaffold. No GTA V engine implementation or game assets are included yet.
+Initial iOS shell and C++ input/frame scaffolding. The `gtav-recomp` upstream is referenced as a Git submodule, but its runtime is not yet linked into the iOS target. The current Metal renderer is a diagnostic triangle, not GTA V gameplay.
 
 ## Layout
 - `ios/` — native iOS application shell
