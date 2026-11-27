@@ -50,3 +50,6 @@
 body.menu-open .hud,body.menu-open .controls,body.menu-open .crosshair,body.menu-open #loading{display:none!important}
 body.menu-playing #main-menu,body.menu-playing #gtav-loading{display:none!important}
 @media(max-height:650px){#main-menu{padding-top:18px;padding-bottom:18px}.menu-version{margin-bottom:14px}.menu-button{padding:10px 14px}.menu-foot{margin-top:12px}}
+
+#gtav-skip{position:absolute;left:50%;top:calc(50% + 52px);transform:translateX(-50%);padding:11px 16px;border:1px solid #ffffff70;background:#171717;color:#fff;font:11px Chalet,Arial,sans-serif;letter-spacing:.5px}
+#gtav-skip[hidden]{display:none}
