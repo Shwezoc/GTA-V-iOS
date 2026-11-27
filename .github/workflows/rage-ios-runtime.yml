@@ -86,12 +86,12 @@ jobs:
         run: |
           set -e
           mkdir -p rage-ios-runtime
-          GTAV_BIN="$(find build/ios-shell -type f -name gtav_fast -perm -111 -print -quit)"
-          REX_RUNTIME="$(find rexglue-sdk/out/install/ios-arm64 -type f -name librexruntime.dylib -print -quit)"
-          REX_GPU="$(find rexglue-sdk/out/install/ios-arm64 -type f -name librexgpu-xenos.dylib -print -quit)"
-          test -n "$GTAV_BIN" || { echo "ERROR: gtav_fast executable was not produced"; find build/ios-shell -maxdepth 4 -type f -print; exit 1; }
-          test -n "$REX_RUNTIME" || { echo "ERROR: librexruntime.dylib was not installed"; find rexglue-sdk/out/install/ios-arm64 -maxdepth 5 -type f -print; exit 1; }
-          test -n "$REX_GPU" || { echo "ERROR: librexgpu-xenos.dylib was not installed"; find rexglue-sdk/out/install/ios-arm64 -maxdepth 5 -type f -print; exit 1; }
+          GTAV_BIN="$(find upstream/gtav-recomp/build/ios-shell -type f -name gtav_fast -perm -111 -print -quit)"
+          REX_RUNTIME="$(find upstream/gtav-recomp/rexglue-sdk/out/install/ios-arm64 -type f -name librexruntime.dylib -print -quit)"
+          REX_GPU="$(find upstream/gtav-recomp/rexglue-sdk/out/install/ios-arm64 -type f -name librexgpu-xenos.dylib -print -quit)"
+          test -n "$GTAV_BIN" || { echo "ERROR: gtav_fast executable was not produced"; find upstream/gtav-recomp/build/ios-shell -maxdepth 4 -type f -print; exit 1; }
+          test -n "$REX_RUNTIME" || { echo "ERROR: librexruntime.dylib was not installed"; find upstream/gtav-recomp/rexglue-sdk/out/install/ios-arm64 -maxdepth 5 -type f -print; exit 1; }
+          test -n "$REX_GPU" || { echo "ERROR: librexgpu-xenos.dylib was not installed"; find upstream/gtav-recomp/rexglue-sdk/out/install/ios-arm64 -maxdepth 5 -type f -print; exit 1; }
           cp "$GTAV_BIN" rage-ios-runtime/gtav
           cp "$REX_RUNTIME" rage-ios-runtime/
           cp "$REX_GPU" rage-ios-runtime/
