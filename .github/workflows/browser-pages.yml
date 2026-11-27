@@ -25,6 +25,9 @@ jobs:
           test -s browser/main.js
           test -s browser/menu.js
           test -s browser/menu.css
+          test -s browser/gtav-loading.js
+          test -s browser/assets/gtav-loading/README.md
+          node --check browser/gtav-loading.js
           node --check browser/main.js
           node --check browser/menu.js
           touch browser/.nojekyll
