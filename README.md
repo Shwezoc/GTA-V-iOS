@@ -25,7 +25,7 @@ The pinned upstream iOS port documents these required stages:
 
 The upstream documentation states that the game-specific iOS library and shaders are built on a desktop host; iOS cannot perform those compile/translation stages itself. A shell-only build can validate the host/runtime but cannot render Michael or the game world without the locally generated game library and game data.
 
-See [the pinned upstream iOS build notes](https://github.com/andrewnakas/gtav-recomp/blob/2a76184f563e4b604a88bea8eeed1334e77f3220/docs/IOS_PORT.md) and [the upstream project README](https://github.com/andrewnakas/gtav-recomp/tree/2a76184f563e4b604a88bea8eeed1334e77f3220).
+See [the repository's staged runtime build gates](docs/BUILDING_REAL_IOS_RUNTIME.md), [the pinned upstream iOS build notes](https://github.com/andrewnakas/gtav-recomp/blob/2a76184f563e4b604a88bea8eeed1334e77f3220/docs/IOS_PORT.md) and [the upstream project README](https://github.com/andrewnakas/gtav-recomp/tree/2a76184f563e4b604a88bea8eeed1334e77f3220).
 
 ## Layout
 - `ios/` — current native diagnostic app shell
