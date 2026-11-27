@@ -1,0 +1,105 @@
+name: RAGE iOS Runtime Shell (no game data)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [minimal-runtime]
+    paths:
+      - "upstream/gtav-recomp"
+      - "tools/prepare_upstream_ios_deps.sh"
+      - ".github/workflows/rage-ios-runtime.yml"
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  build-ios-runtime:
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - name: Checkout pinned upstream source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install build tools
+        run: brew install cmake ninja
+
+      - name: Prepare pinned third-party sources and patches
+        run: sh tools/prepare_upstream_ios_deps.sh
+
+      - name: Build macOS host SDK (provides rexglue code generator)
+        working-directory: upstream/gtav-recomp/rexglue-sdk
+        run: |
+          cmake -S . -B out/build/mac-arm64 -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_INSTALL_PREFIX="$PWD/out/install/mac-arm64" \
+            -DREXGLUE_ENABLE_TRACY=OFF
+          cmake --build out/build/mac-arm64 --parallel 3
+          cmake --install out/build/mac-arm64
+
+      - name: Build iOS ReXGlue runtime SDK
+        working-directory: upstream/gtav-recomp/rexglue-sdk
+        run: |
+          cmake -S . -B out/build/ios-arm64 -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_SYSROOT=iphoneos \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_C_FLAGS=-mcpu=apple-a14 \
+            -DCMAKE_CXX_FLAGS=-mcpu=apple-a14 \
+            -DCMAKE_CXX_STANDARD=23 \
+            -DREXGLUE_ENABLE_TRACY=OFF \
+            -DCMAKE_INSTALL_PREFIX="$PWD/out/install/ios-arm64"
+          cmake --build out/build/ios-arm64 --parallel 3
+          cmake --install out/build/ios-arm64
+
+      - name: Configure upstream GTA V iOS shell
+        working-directory: upstream/gtav-recomp/gtav
+        run: |
+          cmake -S . -B ../build/ios-shell -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_SYSROOT=iphoneos \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_C_FLAGS=-mcpu=apple-a14 \
+            -DCMAKE_CXX_FLAGS=-mcpu=apple-a14 \
+            -DCMAKE_PREFIX_PATH="$PWD/../rexglue-sdk/out/install/ios-arm64" \
+            -DCMAKE_FIND_ROOT_PATH="$PWD/../rexglue-sdk/out/install/ios-arm64" \
+            -DGTAV_GAME_DLL=ON \
+            -DGTAV_HOST_REXGLUE="$PWD/../rexglue-sdk/out/install/mac-arm64/bin/rexglue" \
+            -DGTAV_PREBUILT_NATIVE_SHADERS=
+
+      - name: Compile upstream GTA V iOS shell
+        working-directory: upstream/gtav-recomp
+        run: cmake --build build/ios-shell --parallel 3
+
+      - name: Collect runtime shell (not a playable game)
+        run: |
+          set -e
+          mkdir -p rage-ios-runtime
+          cp build/ios-shell/gtav_fast.app/gtav_fast rage-ios-runtime/gtav
+          cp rexglue-sdk/out/install/ios-arm64/lib/librexruntime.dylib rage-ios-runtime/
+          cp rexglue-sdk/out/install/ios-arm64/lib/librexgpu-xenos.dylib rage-ios-runtime/
+          cat > rage-ios-runtime/BUILD-STATUS.txt <<'EOF'
+          Upstream RAGE-compatible GTA V host and ReXGlue iOS runtime shell.
+          This is NOT a playable GTA V IPA.
+          It contains no Rockstar game code, game data, generated game library,
+          game shaders, MoltenVK framework, or app signing.
+          A compatible device and locally supplied game data/build outputs are still required.
+          EOF
+
+      - name: Upload unsigned runtime shell components
+        uses: actions/upload-artifact@v4
+        with:
+          name: rage-ios-runtime-shell-no-game-data
+          path: rage-ios-runtime/
+          if-no-files-found: error
