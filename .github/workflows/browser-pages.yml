@@ -1,10 +1,5 @@
-name: Browser 3D Test (GitHub Pages)
+name: Legacy Three.js Demo (not RAGE)
 on:
-  push:
-    branches: [minimal-runtime]
-    paths:
-      - 'browser/**'
-      - '.github/workflows/browser-pages.yml'
   workflow_dispatch:
 permissions:
   contents: read
