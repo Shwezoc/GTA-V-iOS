@@ -50,6 +50,8 @@ A standalone mobile browser prototype lives in `browser/`. It uses Three.js/WebG
 
 To publish it, enable GitHub Pages once in repository Settings → Pages → Build and deployment → Source: GitHub Actions. The `.github/workflows/browser-pages.yml` workflow then deploys the `browser/` directory on pushes to `minimal-runtime`. Expected site URL: https://shwezoc.github.io/GTA-V-iOS/.
 
+A real RAGE/WebAssembly browser build does **not** exist yet. The pinned upstream runtime has no WebAssembly target, and its renderer/runtime dependencies need substantial platform and graphics-backend work. See the [verified browser RAGE feasibility audit](docs/BROWSER_RAGE_WASM_FEASIBILITY.md). Do not treat the Three.js page as an RAGE build.
+
 ## Clean-room rules
 1. Do not commit game archives, decrypted executables, keys, generated game C++, compiled game libraries, game shaders, or game data.
 2. Do not publish an IPA containing Rockstar-derived code or assets.
