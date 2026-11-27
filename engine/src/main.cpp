@@ -1,6 +1,22 @@
-#include <iostream>
+#include "PortCore.hpp"
+#include "GameLoop.hpp"
 
-int main() {
-    std::cout << "GTA V iOS Engine Bootstrap\n";
-    return 0;
+namespace shwezov::port {
+
+struct EngineState {
+    PortCore core;
+    GameLoop gameLoop;
+
+    void initialize() {
+        gameLoop.reset();
+    }
+
+    GameTime update() {
+        core.beginFrame();
+        GameTime time = gameLoop.tick();
+        core.endFrame();
+        return time;
+    }
+};
+
 }
