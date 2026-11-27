@@ -19,3 +19,6 @@ GameData/
 *.rpf
 *.pak
 *.obb
+
+# Locally supplied GTA V loading assets (copyrighted game resources)
+browser/assets/gtav-loading/title/
