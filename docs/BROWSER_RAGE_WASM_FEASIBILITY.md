@@ -25,6 +25,7 @@ A genuine browser port is a separate engine-porting project, not a build-flag ch
    - There is no WebGPU backend in the inspected source tree.
    - Emscripten does not automatically translate Vulkan calls into WebGPU. A real port needs a new WebGPU implementation of the Plume render-device interface (or a separately maintained translation layer).
    - Safari/iOS WebGPU support is still listed as partial, so the WebGPU feature set and device-loss behavior need explicit validation on the target iPhone.
+   - The Plume RHI contract is broad: buffers and texture views, descriptor sets, graphics/compute pipelines, command lists and barriers, swapchains, fences/semaphores, query pools, plus ray-tracing interfaces. A WebGPU backend must implement the subset the GTAV renderer actually calls and explicitly reject unsupported paths; it is not just a canvas-present function.
 
 3. **Shader pipeline mismatch**
    - The runtime currently produces and consumes SPIR-V for Vulkan.
