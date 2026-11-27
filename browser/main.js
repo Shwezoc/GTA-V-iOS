@@ -48,3 +48,21 @@ let last=performance.now(),elapsed=0;
 function frame(now){const dt=Math.min((now-last)/1000,.04);last=now;elapsed+=dt;const kx=(keys.d?1:0)-(keys.a?1:0),ky=(keys.s?1:0)-(keys.w?1:0),ix=clamp(axisX+kx,-1,1),iy=clamp(axisY+ky,-1,1),moving=Math.hypot(ix,iy)>.12;if(moving){const speed=running?5.2:2.7,fx=Math.sin(cameraYaw),fz=Math.cos(cameraYaw),rx=fz,rz=-fx,dx=rx*ix+fx*iy,dz=rz*ix+fz*iy,l=Math.hypot(dx,dz)||1;player.x+=dx/l*speed*dt;player.z+=dz/l*speed*dt;player.yaw=Math.atan2(dx,dz)}
 setupCamera();ctx.fillStyle='#9ab4c8';ctx.fillRect(0,0,W,H);const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#8daabd');sky.addColorStop(.55,'#c1c9c5');sky.addColorStop(1,'#53645b');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);drawGround();drawBuildings();drawPerson(elapsed,moving);requestAnimationFrame(frame)}
 loading.textContent='ЗАПУСК ЛЁГКОЙ 3D-СЦЕНЫ…';requestAnimationFrame(frame);setTimeout(()=>loading.classList.add('hidden'),250);
+
+/* Live build telemetry: the browser scene is independent from the native RAGE build. */
+(async()=>{
+ const state=document.querySelector('#rage-state'),detail=document.querySelector('#rage-detail'),link=document.querySelector('#rage-link');
+ try{
+  const response=await fetch('https://api.github.com/repos/Shwezoc/GTA-V-iOS/actions/runs?per_page=20&branch=minimal-runtime',{headers:{Accept:'application/vnd.github+json'}});
+  if(!response.ok)throw new Error('GitHub API: '+response.status);
+  const data=await response.json();
+  const run=(data.workflow_runs||[]).find(x=>(x.path||'').includes('rage-ios-runtime.yml'));
+  if(!run){state.textContent='НЕТ ЗАПУСКА';state.className='state unknown';detail.textContent='Запуск RAGE runtime пока не найден.';return}
+  link.href=run.html_url;
+  const labels={queued:['В ОЧЕРЕДИ','pending'],in_progress:['СБОРКА ИДЁТ','pending'],completed:run.conclusion==='success'?['СБОРКА УСПЕШНА','success']:['СБОРКА НЕ ПРОШЛА','failure']};
+  const [label,kind]=labels[run.status]||['СТАТУС НЕИЗВЕСТЕН','unknown'];
+  state.textContent=label;state.className='state '+kind;
+  const when=new Date(run.created_at).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+  detail.textContent=run.status==='completed'?(run.conclusion==='success'?'iOS runtime shell собран. Это не готовая GTA V IPA.':'Последняя попытка завершилась ошибкой. Открой лог для деталей.'):(run.status==='queued'?'GitHub выделяет macOS runner. Сборка ещё не началась.':'GitHub собирает зависимости и iOS runtime.')+' Запуск: '+when+'.';
+ }catch(error){state.textContent='НЕТ СВЯЗИ';state.className='state unknown';detail.textContent='Не удалось получить статус GitHub. Сама 3D-сцена работает автономно.'}
+})();
