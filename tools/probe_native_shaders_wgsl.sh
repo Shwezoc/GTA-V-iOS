@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -u
+set -uo pipefail
 
 UPSTREAM="upstream/gtav-recomp/gtav/src/native/shaders"
 OUT="${1:-webgpu-shader-probe}"
