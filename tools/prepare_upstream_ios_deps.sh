@@ -21,15 +21,18 @@ clone_pinned() {
     mkdir -p "$(dirname "$dir")"
     git clone "$url" "$dir"
   fi
-  if [ -n "$(git -C "$dir" status --porcelain)" ]; then
-    echo "ERROR: $dir has local changes; refusing to overwrite them."
-    exit 3
-  fi
   git -C "$dir" fetch --tags origin
-  git -C "$dir" checkout --detach "$commit"
+  expected="$(git -C "$dir" rev-parse "$commit^{commit}")"
+  actual="$(git -C "$dir" rev-parse HEAD)"
+  if [ "$actual" != "$expected" ]; then
+    if [ -n "$(git -C "$dir" status --porcelain)" ]; then
+      echo "ERROR: $dir has local changes at an unexpected revision; refusing to overwrite them."
+      exit 3
+    fi
+    git -C "$dir" checkout --detach "$expected"
+  fi
   git -C "$dir" submodule update --init --recursive
   actual="$(git -C "$dir" rev-parse HEAD)"
-  expected="$(git -C "$dir" rev-parse "$commit^{commit}")"
   if [ "$actual" != "$expected" ]; then
     echo "ERROR: wrong revision in $dir: $actual (expected $expected)"
     exit 4
