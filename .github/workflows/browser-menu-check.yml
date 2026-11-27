@@ -27,9 +27,11 @@ jobs:
           test -s browser/main.js
           test -s browser/menu.js
           test -s browser/menu.css
+          test -s browser/gtav-loading.js
+          node --check browser/gtav-loading.js
           node --check browser/main.js
           node --check browser/menu.js
-          grep -q 'id="boot-screen"' browser/index.html
+          grep -q 'id="gtav-loading"' browser/index.html
           grep -q 'id="settings-panel"' browser/index.html
           grep -q 'id="mode-panel"' browser/index.html
           echo "Browser boot/menu/settings/mode UI validation passed."
