@@ -156,4 +156,4 @@ Two first rewrites are now in `webgpu/shaders/`:
 - `native_resolve_compute_rgba16float.wgsl`: replaces descriptor arrays with one explicitly bound source texture and one `rgba16float` storage texture; replaces Vulkan push constants with a uniform buffer.
 - `native_memory_segmented.wgsl`: replaces the 64-bit GPU address / `vk::RawBufferStore` path with a bounded storage-buffer binding and 32-bit segment-relative byte offset.
 
-These are shader-level prototypes only. They are not yet wired into Plume or the GTAV renderer. The CI probe is being extended to validate both WGSL rewrites before any C++ backend integration begins.
+These are shader-level prototypes only. They are not yet wired into Plume or the GTAV renderer. Both now pass Naga WGSL validation in [probe run #46004467066](https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46004467066). This confirms syntax/IR validation only; it does not prove runtime binding compatibility, pixel equivalence, or a functioning WebGPU backend.
