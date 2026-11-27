@@ -44,6 +44,12 @@ sh tools/verify_upstream_ios.sh
 
 A successful source audit is not a successful runtime build. The audit reports external/generated build inputs separately.
 
+## Browser 3D test
+
+A standalone mobile browser prototype lives in `browser/`. It uses Three.js/WebGL and is separate from the native iOS host and the upstream GTA V runtime. It currently contains a procedural placeholder character, a small generated street scene, touch movement, sprint, and camera drag controls. It is not GTA V and does not execute RAGE.
+
+To publish it, enable GitHub Pages once in repository Settings → Pages → Build and deployment → Source: GitHub Actions. The `.github/workflows/browser-pages.yml` workflow then deploys the `browser/` directory on pushes to `minimal-runtime`. Expected site URL: https://shwezoc.github.io/GTA-V-iOS/.
+
 ## Clean-room rules
 1. Do not commit game archives, decrypted executables, keys, generated game C++, compiled game libraries, game shaders, or game data.
 2. Do not publish an IPA containing Rockstar-derived code or assets.
