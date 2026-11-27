@@ -11,11 +11,18 @@ This document separates a diagnostic IPA from an actual GTA V runtime build.
 
 ## Runtime integration sequence
 
-1. Prepare the exact third-party trees and patches documented by upstream:
-   - ReXGlue SDK: `rexglue/rexglue-sdk` at `f5337cd`, apply `rexglue-sdk-gtav-linux.patch`.
-   - Plume: `renderbag/plume` at `0ce184b`, recursive submodules, apply `plume-gtav.patch`.
-   - XenosRecomp: `hedge-dev/XenosRecomp` at `990d03b`, recursive submodules, apply `xenosrecomp-gtav.patch`.
-   - SDL3 and FFmpeg patches are applied inside the SDK tree as specified by upstream's iOS port notes.
+1. Prepare the exact third-party trees and patches documented by upstream. The repository now contains `tools/prepare_upstream_ios_deps.sh`, which pins and patches:
+   - ReXGlue SDK: `rexglue/rexglue-sdk` at `f5337cd`, plus its recursive submodules and `rexglue-sdk-gtav-linux.patch`.
+   - SDL3 and FFmpeg inside the SDK, with `sdl3-gtav.patch` and `ffmpeg-gtav.patch`.
+   - Plume: `renderbag/plume` at `0ce184b`, recursive submodules, and `plume-gtav.patch`.
+   - XenosRecomp: `hedge-dev/XenosRecomp` at `990d03b`, recursive submodules, and `xenosrecomp-gtav.patch`.
+
+   Run it from the repository on a machine with Git:
+   ```sh
+   git submodule update --init --recursive
+   sh tools/prepare_upstream_ios_deps.sh
+   ```
+   The script is repeatable, refuses to overwrite dirty trees at an unexpected revision, and fetches source only. It does not download or package Rockstar game data.
 2. Build the iOS ReXGlue runtime for arm64 (iOS 17 deployment target).
 3. Build the GTA V host with `GTAV_GAME_DLL=ON` for the clean shell, and compile the native renderer's own shaders with the macOS DXC toolchain.
 4. Package the host with the iOS MoltenVK dynamic library and the SDK runtime libraries. This is still only the shell.
