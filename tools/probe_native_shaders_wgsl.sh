@@ -45,5 +45,14 @@ probe_shader "native_resolve_fetch_vert" vert "$UPSTREAM/native_resolve_fetch.ve
 probe_shader "native_resolve_compute" comp "$UPSTREAM/native_resolve_compute.comp"
 probe_shader "native_resolve_fetch_frag" frag "$UPSTREAM/native_resolve_fetch.frag" -DSOURCE=0
 
+echo "=== WebGPU-specific rgba16float compute resolve ===" | tee -a "$REPORT"
+WEBGPU_SHADER="webgpu/shaders/native_resolve_compute_rgba16float.wgsl"
+if naga "$WEBGPU_SHADER" >"$OUT/native_resolve_compute_rgba16float.naga.log" 2>&1; then
+  echo "PASS: WebGPU-specific WGSL shader validates" | tee -a "$REPORT"
+else
+  cat "$OUT/native_resolve_compute_rgba16float.naga.log" | tee -a "$REPORT"
+  echo "BLOCKED: WebGPU-specific WGSL shader validation failed" | tee -a "$REPORT"
+fi
+
 echo | tee -a "$REPORT"
 echo "This is a shader portability probe only. It does not build or execute RAGE." | tee -a "$REPORT"
