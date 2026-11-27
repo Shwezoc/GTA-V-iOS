@@ -33,6 +33,7 @@ See [the repository's staged runtime build gates](docs/BUILDING_REAL_IOS_RUNTIME
 - `upstream/gtav-recomp/` — pinned upstream source submodule
 - `docs/` — architecture and integration notes
 - `tools/` — dependency preparation and source/build-input audit tooling
+- `webgpu/shaders/` — experimental WGSL rewrites of actual upstream native-renderer shaders; validated by Naga, not yet integrated into Plume
 
 ## Validation
 Initialize the source submodule and run:
