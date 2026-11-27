@@ -1,0 +1,22 @@
+name: Prepare pinned iOS runtime dependencies
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: minimal-runtime
+          submodules: recursive
+      - name: Prepare exact upstream third-party trees
+        run: sh tools/prepare_upstream_ios_deps.sh
+      - name: Verify upstream source and prepared dependencies
+        run: |
+          git submodule status --recursive
+          sh tools/verify_upstream_ios.sh
