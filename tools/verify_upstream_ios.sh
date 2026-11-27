@@ -35,14 +35,23 @@ for p in \
   "$UPSTREAM/gtav/generated/rexglue.cmake" \
   "$UPSTREAM/rexglue-sdk/CMakeLists.txt" \
   "$UPSTREAM/thirdparty/plume/CMakeLists.txt" \
-  "$UPSTREAM/thirdparty/sdl3/CMakeLists.txt" \
-  "$UPSTREAM/thirdparty/FFmpeg/CMakeLists.txt"; do
+  "$UPSTREAM/thirdparty/XenosRecomp/CMakeLists.txt" \
+  "$UPSTREAM/rexglue-sdk/thirdparty/sdl3/CMakeLists.txt" \
+  "$UPSTREAM/rexglue-sdk/thirdparty/FFmpeg/CMakeLists.txt"; do
   if [ -f "$p" ]; then
     printf 'PRESENT %s\n' "${p#"$UPSTREAM/"}"
   else
     printf 'NEEDED  %s\n' "${p#"$UPSTREAM/"}"
   fi
 done
+
+echo "=== Dependency preparation helper ==="
+if [ -f "$ROOT/tools/prepare_upstream_ios_deps.sh" ]; then
+  echo "AVAILABLE tools/prepare_upstream_ios_deps.sh"
+else
+  echo "MISSING tools/prepare_upstream_ios_deps.sh"
+  fail=1
+fi
 
 echo "=== Pinned source revision ==="
 git -C "$UPSTREAM" rev-parse HEAD
@@ -52,4 +61,9 @@ if [ "$fail" -ne 0 ]; then
   exit 1
 fi
 
-echo "Source audit passed. This does NOT mean the runtime is linked or the iOS app is built."
+if [ "$fail" -eq 0 ]; then
+  echo "Source audit passed. This does NOT mean the runtime is linked or the iOS app is built."
+else
+  echo "Source audit incomplete. Prepare dependencies with: sh tools/prepare_upstream_ios_deps.sh"
+  exit 1
+fi
