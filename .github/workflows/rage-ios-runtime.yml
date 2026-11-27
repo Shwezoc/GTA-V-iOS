@@ -19,7 +19,12 @@ permissions:
 
 jobs:
   build-ios-runtime:
+    name: Build iOS runtime (${{ matrix.cpu_target }})
     runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        cpu_target: [apple-a14, apple-a13]
     timeout-minutes: 120
     steps:
       - name: Checkout pinned upstream source
@@ -55,8 +60,8 @@ jobs:
             -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 \
             -DCMAKE_C_COMPILER=clang \
             -DCMAKE_CXX_COMPILER=clang++ \
-            -DCMAKE_C_FLAGS=-mcpu=apple-a14 \
-            -DCMAKE_CXX_FLAGS=-mcpu=apple-a14 \
+            -DCMAKE_C_FLAGS=-mcpu=${{ matrix.cpu_target }} \
+            -DCMAKE_CXX_FLAGS=-mcpu=${{ matrix.cpu_target }} \
             -DCMAKE_CXX_STANDARD=23 \
             -DREXGLUE_ENABLE_TRACY=OFF \
             -DCMAKE_INSTALL_PREFIX="$PWD/out/install/ios-arm64"
@@ -74,8 +79,8 @@ jobs:
             -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 \
             -DCMAKE_C_COMPILER=clang \
             -DCMAKE_CXX_COMPILER=clang++ \
-            -DCMAKE_C_FLAGS=-mcpu=apple-a14 \
-            -DCMAKE_CXX_FLAGS=-mcpu=apple-a14 \
+            -DCMAKE_C_FLAGS=-mcpu=${{ matrix.cpu_target }} \
+            -DCMAKE_CXX_FLAGS=-mcpu=${{ matrix.cpu_target }} \
             -DCMAKE_PREFIX_PATH="$PWD/../rexglue-sdk/out/install/ios-arm64" \
             -DCMAKE_FIND_ROOT_PATH="$PWD/../rexglue-sdk/out/install/ios-arm64" \
             -DGTAV_GAME_DLL=ON \
@@ -127,6 +132,8 @@ jobs:
 
           cat > rage-ios-runtime/BUILD-STATUS.txt <<'EOF'
           Upstream RAGE-compatible GTA V host and ReXGlue iOS runtime shell.
+          CPU compile target: ${{ matrix.cpu_target }}.
+          apple-a13 is an experimental compatibility build, not an upstream-supported device guarantee.
           This is NOT a playable GTA V IPA.
           It contains no Rockstar game code, game data, generated game library,
           game shaders, MoltenVK framework, or app signing.
@@ -136,6 +143,6 @@ jobs:
       - name: Upload unsigned runtime shell components
         uses: actions/upload-artifact@v4
         with:
-          name: rage-ios-runtime-shell-no-game-data
+          name: rage-ios-runtime-shell-${{ matrix.cpu_target }}-no-game-data
           path: rage-ios-runtime/
           if-no-files-found: error
