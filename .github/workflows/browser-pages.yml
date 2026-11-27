@@ -5,6 +5,7 @@ on:
     paths:
       - 'browser/**'
       - '.github/workflows/browser-pages.yml'
+      - '.github/workflows/browser-pages.yml'
   workflow_dispatch:
 permissions:
   contents: read
