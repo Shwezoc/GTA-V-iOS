@@ -35,6 +35,7 @@ A genuine browser port is a separate engine-porting project, not a build-flag ch
    - Browser WebGPU needs a compatible WebGPU shader path, normally WGSL. A port must translate/validate the guest shader output and all renderer shaders against WebGPU's supported feature set; merely copying SPIR-V files into a web package is not sufficient.
 
 4. **Platform services and build graph**
+   - `include/rex/platform.h` currently recognizes only Apple, Windows, Android, and GNU/Linux; an Emscripten target reaches `#error Unsupported target OS.` There is no `REX_PLATFORM_WEB` macro.
    - The SDK's `src/core/CMakeLists.txt` selects native Windows sources or a generic `elseif(UNIX)` POSIX set, including fibers, mapped memory, exception handling, sockets, and threading. Emscripten may satisfy broad UNIX checks, but browser Wasm is not a normal POSIX process; these sources need explicit browser replacements or exclusions.
    - The SDK's `src/ui/CMakeLists.txt` selects Vulkan UI sources and, on non-Apple Unix, requires X11/XCB and Wayland packages. That Linux desktop path must be excluded from a browser build and replaced with browser presentation/input.
    - The runtime uses SDL3 for windowing, input, and audio. SDL3's browser platform can cover part of this, but browser lifecycle, file access, threading, audio activation, and persistent storage still need explicit handling.
@@ -76,6 +77,8 @@ Do not mark the browser milestone complete until all are true:
 
 - Upstream `gtav/CMakeLists.txt`: the GTAV host links Plume and the Xenos GPU plugin; iOS uses the native runtime path.
 - ReXGlue SDK `CMakeLists.txt`: platform detection and 64-bit pointer requirement.
+- ReXGlue SDK `include/rex/platform.h`: Emscripten currently reaches `#error Unsupported target OS.`
+- ReXGlue SDK `src/core/CMakeLists.txt`: non-Windows builds select native POSIX source files; no browser-specific implementation exists.
 - ReXGlue SDK `src/graphics/CMakeLists.txt` and `src/ui/CMakeLists.txt`: Vulkan/D3D12 backend selection and platform-specific UI sources.
 - Plume `CMakeLists.txt` and `plume_render_interface.h`: Vulkan, Apple Metal, and Windows D3D12 sources; no WebGPU backend; 103 pure-virtual RHI methods.
 - Plume `plume_render_interface_types.h`: shader formats are DXIL, SPIR-V, and Metal; no WGSL.
@@ -94,7 +97,7 @@ Do not mark the browser milestone complete until all are true:
 
 The first code work should be split into independently testable gates rather than attempting a full GTA V link immediately:
 
-1. **Emscripten platform configure gate:** introduce an explicit `REX_PLATFORM_WEB`/Emscripten branch in the SDK build system, disable native X11/Wayland and Vulkan-only targets, and produce a configure report listing every unsupported source/target. Do not silently route Emscripten through the generic POSIX branch.
+1. **Emscripten platform configure gate:** introduce an explicit `REX_PLATFORM_WEB`/Emscripten branch in `include/rex/platform.h` and the SDK CMake source selection, disable native X11/Wayland and Vulkan-only targets, and produce a configure report listing every unsupported source/target. Do not silently route Emscripten through the generic POSIX branch.
 2. **Guest-memory prototype:** implement a browser memory arena and guest-address translation for a tiny test that reserves, commits, protects, and releases guest pages. The prototype must not claim compatibility until it passes the SDK's memory tests without native `mmap` assumptions.
 3. **Plume WebGPU vertical slice:** implement only the RHI subset needed for a clear + triangle + indexed draw, with WGSL shaders, swapchain resize, and device-loss handling. Keep this as a Plume backend test, not a GTA/RAGE milestone.
 4. **GTAV renderer backend selection:** replace the hard-coded Vulkan factory and SPIR-V-only shader creation path with an explicit backend/shader interface. The Vulkan path must remain unchanged and continue passing its existing tests.
