@@ -1,5 +1,10 @@
 name: Browser Menu and Runtime Test Lab
 on:
+  push:
+    branches: [minimal-runtime]
+    paths:
+      - 'browser/**'
+      - '.github/workflows/browser-pages.yml'
   workflow_dispatch:
 permissions:
   contents: read
