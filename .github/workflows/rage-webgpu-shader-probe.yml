@@ -6,6 +6,7 @@ on:
     paths:
       - "upstream/gtav-recomp"
       - "tools/probe_native_shaders_wgsl.sh"
+      - "webgpu/shaders/**"
       - ".github/workflows/rage-webgpu-shader-probe.yml"
   workflow_dispatch:
 
