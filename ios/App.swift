@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import MetalKit
 
 @main
@@ -12,8 +13,11 @@ struct ShwezovGTAVApp: App {
 
 struct ContentView: View {
     var body: some View {
-        MetalGameView()
-            .ignoresSafeArea()
+        ZStack {
+            MetalGameView()
+            TouchHandler()
+        }
+        .ignoresSafeArea()
     }
 }
 
