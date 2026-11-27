@@ -137,3 +137,23 @@ A source scan of `gtav/src/native/backend.cpp` found 41 distinct Plume operation
 | Ray-tracing interfaces | No WebGPU core equivalent | Can be rejected if the GTAV renderer does not invoke them |
 
 This is a backend implementation plan, not evidence that any of these WebGPU operations are implemented yet.
+
+
+## First automated shader-probe results (2026-11-27)
+
+Run: [RAGE WebGPU Shader Translation Probe #46004068098](https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46004068098)
+
+| Upstream shader | SPIR-V compile | Naga SPIR-V → WGSL | Finding |
+|---|---:|---:|---|
+| `native_resolve_fetch.vert` | Pass | Pass | Simple fullscreen vertex shader converts and validates |
+| `native_resolve_compute.comp` | Pass | Blocked | Naga rejects storage-image writes without a declared format; the shader also uses non-uniform descriptor arrays |
+| `native_resolve_fetch.frag` | Pass | Blocked | Naga rejects Vulkan input attachments / `subpassInput` |
+
+This proves that a generic SPIR-V-to-WGSL conversion is not enough for the native renderer. The vertex shader is portable, but the compute and input-attachment paths need explicit WebGPU rewrites.
+
+Two first rewrites are now in `webgpu/shaders/`:
+
+- `native_resolve_compute_rgba16float.wgsl`: replaces descriptor arrays with one explicitly bound source texture and one `rgba16float` storage texture; replaces Vulkan push constants with a uniform buffer.
+- `native_memory_segmented.wgsl`: replaces the 64-bit GPU address / `vk::RawBufferStore` path with a bounded storage-buffer binding and 32-bit segment-relative byte offset.
+
+These are shader-level prototypes only. They are not yet wired into Plume or the GTAV renderer. The CI probe is being extended to validate both WGSL rewrites before any C++ backend integration begins.
