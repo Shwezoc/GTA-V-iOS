@@ -2,6 +2,10 @@ name: Prepare Franklin rigging tools
 
 on:
   workflow_dispatch:
+  push:
+    branches: [minimal-runtime]
+    paths:
+      - '.github/workflows/prepare-franklin-rigging-tools.yml'
 
 permissions:
   contents: read
