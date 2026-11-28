@@ -7,6 +7,14 @@ on:
         description: Direct HTTPS download URL for Franklin GLB/GLTF/FBX/OBJ
         required: true
         type: string
+      model_format:
+        description: Source model file format
+        required: true
+        type: choice
+        options:
+          - glb
+          - fbx
+          - obj
       model_height:
         description: Target character height in metres
         required: true
@@ -27,6 +35,7 @@ jobs:
       - name: Download Franklin source model
         env:
           MODEL_URL: ${{ inputs.model_url }}
+          MODEL_FORMAT: ${{ inputs.model_format }}
         shell: bash
         run: |
           set -euo pipefail
@@ -35,9 +44,13 @@ jobs:
             *) echo "Only HTTPS model URLs are accepted"; exit 2 ;;
           esac
           mkdir -p work/input work/output
-          curl --fail --location --retry 3 --max-time 900 "$MODEL_URL" -o work/input/franklin_model
-          test -s work/input/franklin_model
-          file work/input/franklin_model
+          case "$MODEL_FORMAT" in
+            glb|fbx|obj) ;;
+            *) echo "Unsupported model format"; exit 2 ;;
+          esac
+          curl --fail --location --retry 3 --max-time 900 "$MODEL_URL" -o "work/input/franklin_model.$MODEL_FORMAT"
+          test -s "work/input/franklin_model.$MODEL_FORMAT"
+          file "work/input/franklin_model.$MODEL_FORMAT"
 
       - name: Install Blender 5.2.0
         shell: bash
