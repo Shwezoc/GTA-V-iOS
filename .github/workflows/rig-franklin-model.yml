@@ -1,0 +1,88 @@
+name: Rig Franklin model to GTA freemode skeleton
+
+on:
+  workflow_dispatch:
+    inputs:
+      model_url:
+        description: Direct HTTPS download URL for Franklin GLB/GLTF/FBX/OBJ
+        required: true
+        type: string
+      model_height:
+        description: Target character height in metres
+        required: true
+        default: "1.83"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  rig-franklin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Download Franklin source model
+        env:
+          MODEL_URL: ${{ inputs.model_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$MODEL_URL" in
+            https://*) ;;
+            *) echo "Only HTTPS model URLs are accepted"; exit 2 ;;
+          esac
+          mkdir -p work/input work/output
+          curl --fail --location --retry 3 --max-time 900 "$MODEL_URL" -o work/input/franklin_model
+          test -s work/input/franklin_model
+          file work/input/franklin_model
+
+      - name: Install Blender 5.2.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz \
+            -o /tmp/blender.tar.xz
+          mkdir -p "$RUNNER_TEMP/blender"
+          tar -xf /tmp/blender.tar.xz -C "$RUNNER_TEMP/blender" --strip-components=1
+          echo "$RUNNER_TEMP/blender" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/blender/blender" --background --version
+
+      - name: Install pinned Muto Ped Rig and Sollumz
+        shell: bash
+        run: |
+          set -euo pipefail
+          ADDONS="$RUNNER_TEMP/blender/5.2/scripts/addons"
+          mkdir -p "$ADDONS"
+          git clone --depth 1 --branch v0.3.2 https://github.com/B7Kompirine/muto-ped-rig.git "$ADDONS/muto_ped_rig"
+          git clone --depth 1 --branch v2.9.0 https://github.com/Sollumz/Sollumz.git "$ADDONS/Sollumz"
+          test -f "$ADDONS/muto_ped_rig/bl/batch_worker.py"
+          test -f "$ADDONS/Sollumz/__init__.py"
+
+      - name: Enable add-ons and rig Franklin
+        env:
+          MODEL_HEIGHT: ${{ inputs.model_height }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          MODEL="$(find "$GITHUB_WORKSPACE/work/input" -maxdepth 1 -type f | head -n 1)"
+          blender --background \
+            --python-expr "import bpy; bpy.ops.preferences.addon_enable(module='Sollumz'); bpy.ops.preferences.addon_enable(module='muto_ped_rig'); bpy.ops.wm.save_userpref(); print('ADDONS_ENABLED', 'Sollumz', 'muto_ped_rig')" \
+            --python "$GITHUB_WORKSPACE/tools/rig_franklin.py" -- \
+            "src=$MODEL" \
+            "out=$GITHUB_WORKSPACE/work/output" \
+            "worker=$RUNNER_TEMP/blender/5.2/scripts/addons/muto_ped_rig/bl/batch_worker.py" \
+            "ped=franklin" \
+            "height=$MODEL_HEIGHT"
+
+      - name: Upload rigged model and diagnostic report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: franklin-rigged-freemode-glb
+          path: work/output/
+          if-no-files-found: warn
+          retention-days: 30
