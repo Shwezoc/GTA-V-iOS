@@ -119,12 +119,11 @@ def main():
 
         unresolved = []
         curve_count = 0
-        for fcurve in action.fcurves:
+        for fcurve in action_fcurves(action):
             curve_count += 1
-            match = re.search(r'pose\\.bones\\["([^"]+)"\\]', fcurve.data_path)
-            if not match:
+            if 'pose.bones["' not in fcurve.data_path:
                 continue
-            bone_name = match.group(1)
+            bone_name = fcurve.data_path.split('"')[1]
             if bone_name.startswith("#") or bone_name not in armature.pose.bones:
                 unresolved.append(fcurve.data_path)
         if unresolved:
