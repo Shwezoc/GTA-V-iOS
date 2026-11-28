@@ -1,3 +1,4 @@
+// RPF7 archive validation is additionally covered by tools/rpf7-inspect.py.
 using System.Text.Json;
 using System.Text;
 using System.Xml.Linq;
