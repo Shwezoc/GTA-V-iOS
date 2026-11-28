@@ -63,6 +63,12 @@ Relevant files:
 
 The two YCD files begin with the `RSC7` resource signature. The binary YMT begins with `PSIN`. The LCPP optional file is XML text, not a third animation dictionary.
 
+Both YCD payloads were also independently decompressed and checked locally using raw DEFLATE after the 16-byte RSC7 header:
+- `move_m@generic_niko.ycd`: RSC7 version 46, system flags `0x28160003`, graphics flags `0xE0000000` (zero graphics page size); decompressed system payload 724,992 bytes, matching the page size encoded in the flags.
+- `move_m@wfire@nikowalk.ycd`: RSC7 version 46, system flags `0x21040001`, graphics flags `0xE0000000` (zero graphics page size); decompressed system payload 40,960 bytes, matching the page size encoded in the flags.
+
+This validates the compressed resource containers and their declared system-page sizes. It does not yet decode clip names or bone tracks.
+
 The included author instructions explicitly name these assignments:
 - `ClipDictionaryName = move_m@generic_niko`
 - `MovementClipSet = MOVE_M@WFIRE@NIKOWALK`
