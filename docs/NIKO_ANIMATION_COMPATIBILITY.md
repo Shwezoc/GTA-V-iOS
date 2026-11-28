@@ -36,19 +36,21 @@ The CI pipeline now performs the complete offline conversion:
 
 Successful retarget workflow:
 
-- Run: https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46109971198
-- Artifact: https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46109971198/artifacts/15248967396
+- Run: https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46110027534
+- Artifact: https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46110027534/artifacts/15249147076
 - Output: `niko-animated/franklin_niko_animated.glb`
-- GLB size: 776,424 bytes
+- GLB size: 755,248 bytes
 - Meshes: 1
 - Skins: 1
-- Animation actions exported: **4**
+- Skeleton joints: 128
+- Animation entries: **4**
+- Animation channels: **385 per animation**
 - Clip entries: **5** (`idle`, `idle_intro`, `walk`, `run`, `sprint`)
 - Retargeted armature: `franklin_skel`, 128 bones
 - Matched Niko bone IDs: **106 / 106**
 - Unmatched bone IDs: **0**
 
-The successful CI log includes `NIKO_RETARGET_OK` and `FRANKLIN_NIKO_ANIMATED_GLB_VALID`. The output GLB header and its mesh/skin/animation tables were independently validated after artifact download.
+The shared `idle` / `idle_intro` action is exported once to avoid duplicate animation channels. The artifact includes the retargeted Blender scene, GLB, report, and the GTA Freemode ped resource files. The downloaded GLB was independently checked: valid glTF 2.0 binary header, one skinned mesh, one skin, 128 joints, and four animation entries.
 
 ## Scope and limitations
 
