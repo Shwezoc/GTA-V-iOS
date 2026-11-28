@@ -223,15 +223,31 @@ def main():
         obj.hide_viewport = False
         obj.hide_render = False
         obj.hide_select = False
+        # glTF-Blender-IO only emits a skin when the mesh is parented to
+        # the same armature object used by its Armature modifier. The Muto
+        # scene can contain several armature objects (MPR_Rig, franklin.002,
+        # franklin.001); redirecting the modifier alone leaves split parts
+        # attached to stale skeleton nodes and exports the head unskinned.
+        world_matrix = obj.matrix_world.copy()
+        obj.parent = armature
+        obj.matrix_parent_inverse = armature.matrix_world.inverted()
+        obj.matrix_world = world_matrix
+
+        # Keep exactly one deform modifier, targeting the selected animation
+        # rig. Remove stale modifiers rather than allowing Blender to choose
+        # an unexpected armature during glTF skin generation.
         arm_modifiers = [m for m in obj.modifiers if m.type == "ARMATURE"]
         if not arm_modifiers:
-            arm_modifiers = [obj.modifiers.new(name="Franklin_Armature", type="ARMATURE")]
-        for modifier in arm_modifiers:
-            modifier.object = armature
-            modifier.use_vertex_groups = True
-            modifier.use_bone_envelopes = False
-            modifier.show_viewport = True
-            modifier.show_render = True
+            arm_modifier = obj.modifiers.new(name="Franklin_Armature", type="ARMATURE")
+        else:
+            arm_modifier = arm_modifiers[0]
+            for stale in arm_modifiers[1:]:
+                obj.modifiers.remove(stale)
+        arm_modifier.object = armature
+        arm_modifier.use_vertex_groups = True
+        arm_modifier.use_bone_envelopes = False
+        arm_modifier.show_viewport = True
+        arm_modifier.show_render = True
         mesh_objects.append(obj)
 
     if not mesh_objects:
