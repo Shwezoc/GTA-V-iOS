@@ -30,7 +30,7 @@ The Franklin and BMW files already processed in this repository are valuable cha
 
 Artifact: `franklin-niko-retargeted-animated-glb` from workflow run [46113312010](https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46113312010).
 
-- The pipeline produced a Franklin ped resource with `.ydd`, `.yft`, `.ymt`, and `.ytd` files.
+- The pipeline produced a Franklin ped resource with native `.ydd`, `.yft`, `.ymt`, and `.ytd` files; their headers use the RSC7 resource container signature.
 - A retargeted animated GLB contains 4 animation tracks/clips: idle, run, sprint and walk.
 - Retarget report records 106 matched animation bone IDs and zero unmatched IDs.
 - A native-format `.ycd` intermediate was packed and round-trip decoded.
@@ -40,8 +40,9 @@ Artifact: `franklin-niko-retargeted-animated-glb` from workflow run [46113312010
 
 Artifact: `BMW-M5-F90-GLB-and-previews` from workflow run [46112567911](https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46112567911).
 
-- Source inputs were GTA V `.yft` and `.ytd` vehicle resources.
-- High-detail GLB conversion reports 274,642 triangles, 153 geometries and 111 textures, with no undecodable textures and no missing GLB textures.
+- The native source artifact [BMW-M5-F90-extracted-RAGE-assets](https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46094904611) preserves `bmwm5f90.yft`, `bmwm5f90.ytd`, `bmwm5f90_hi.yft`, mod-part `.yft` files, and vehicle metadata including `handling.meta`, `carvariations.meta` and `carcols.meta`.
+- The extracted native YFT/YTD resources have the RSC7 container signature.
+- High-detail GLB conversion reports 274,642 triangles, 153 primitives and 97 embedded images; the source report records 111 textures, with no undecodable textures and no missing GLB textures.
 - This is too expensive to assume safe for A13 as-is. It needs a mobile LOD/mesh/texture budget before being used in a real-time scene.
 - The GLB is a conversion/interchange format; preserve original RAGE resource inputs for any native asset path.
 
