@@ -218,8 +218,9 @@ jobs:
           WORKSPACE_WIN="$(cygpath -m "$WORKSPACE")"
           TEMP_WIN="$(cygpath -m "$TEMP_DIR")"
           export CI=true
+          python -m py_compile "$WORKSPACE/tools/retarget_niko_animations.py"
           export PYTHONPATH="$ADDONS${PYTHONPATH:+:$PYTHONPATH}"
-          "$TEMP_DIR/blender/blender.exe" --background \
+          "$TEMP_DIR/blender/blender.exe" --background --python-exit-code 1 \
             --python-expr "import sys,bpy; sys.path.insert(0, '$ADDONS_WIN'); bpy.utils.refresh_script_paths(); import Sollumz; bpy.ops.preferences.addon_enable(module='Sollumz'); import io_scene_gltf2; bpy.ops.preferences.addon_enable(module='io_scene_gltf2')" \
             --python "$WORKSPACE_WIN/tools/retarget_niko_animations.py" -- \
             "blend=$WORKSPACE_WIN/work/output/franklin.blend" \
