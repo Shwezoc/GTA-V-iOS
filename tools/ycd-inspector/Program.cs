@@ -1,4 +1,6 @@
 using System.Text.Json;
+using System.Text;
+using System.Xml.Linq;
 using CodeWalker.GameFiles;
 
 static RpfDirectoryEntry EnsureDirectory(RpfDirectoryEntry parent, string name)
@@ -15,6 +17,11 @@ static void AddFile(RpfDirectoryEntry parent, string sourcePath, string targetNa
     RpfFile.CreateFile(parent, targetName, File.ReadAllBytes(sourcePath), overwrite: false);
 }
 
+static void AddBytes(RpfDirectoryEntry parent, string targetName, byte[] bytes)
+{
+    RpfFile.CreateFile(parent, targetName, bytes, overwrite: false);
+}
+
 static IEnumerable<RpfFile> WalkArchives(RpfFile archive)
 {
     yield return archive;
@@ -25,37 +32,67 @@ static IEnumerable<RpfFile> WalkArchives(RpfFile archive)
             yield return nested;
 }
 
-if (args.Length > 0 && args[0] == "--pack-bmw-dlc")
+if (args.Length > 0 && args[0] == "--pack-mobile-slice-dlc")
 {
-    if (args.Length != 3)
+    if (args.Length != 4)
     {
-        Console.Error.WriteLine("Usage: YcdInspector --pack-bmw-dlc <extracted-bmw-assets-dir> <output-dlc.rpf>");
+        Console.Error.WriteLine("Usage: YcdInspector --pack-mobile-slice-dlc <extracted-bmw-assets-dir> <franklin-assets-dir> <output-dlc.rpf>");
         return 2;
     }
 
-    var source = Path.GetFullPath(args[1]);
-    var dlcOutputPath = Path.GetFullPath(args[2]);
-    var root = Path.Combine(source, "bmw-assets");
-    var metadata = Path.Combine(root, "common", "data");
-    var vehicleSource = Path.Combine(root, "x64", "levels", "gta5", "vehicles", "vehicles.rpf");
-    var modSource = Path.Combine(root, "x64", "bmwm5f90_mods.rpf");
+    var bmwSourceRoot = Path.Combine(Path.GetFullPath(args[1]), "bmw-assets");
+    var franklinSourceRoot = Path.GetFullPath(args[2]);
+    var dlcOutputPath = Path.GetFullPath(args[3]);
+    var bmwMetadata = Path.Combine(bmwSourceRoot, "common", "data");
+    var vehicleSource = Path.Combine(bmwSourceRoot, "x64", "levels", "gta5", "vehicles", "vehicles.rpf");
+    var modSource = Path.Combine(bmwSourceRoot, "x64", "bmwm5f90_mods.rpf");
+    var franklinNativeSource = Path.Combine(franklinSourceRoot, "mpr_franklin", "stream");
+    var franklinPedMeta = Path.Combine(franklinSourceRoot, "mpr_franklin", "peds.meta");
+    var franklinYcd = Path.Combine(franklinSourceRoot, "niko-animated", "niko_franklin_retargeted.ycd");
 
     Directory.CreateDirectory(Path.GetDirectoryName(dlcOutputPath)!);
     if (File.Exists(dlcOutputPath))
         File.Delete(dlcOutputPath);
 
+    var contentDocument = XDocument.Load(Path.Combine(bmwSourceRoot, "content.xml"));
+    var contentRoot = contentDocument.Root ?? throw new InvalidDataException("BMW content.xml has no root element.");
+    var dataFiles = contentRoot.Element("dataFiles") ?? throw new InvalidDataException("BMW content.xml has no dataFiles element.");
+    var changesToEnable = contentRoot.Element("contentChangeSets")?.Elements("Item")
+        .FirstOrDefault(item => (string?)item.Element("changeSetName") == "bmwm5f90_AUTOGEN")?
+        .Element("filesToEnable") ?? throw new InvalidDataException("BMW content.xml has no AUTOGEN filesToEnable list.");
+
+    void AddDlcDataFile(string virtualPath, string fileType, bool persistent)
+    {
+        var existing = dataFiles.Elements("Item")
+            .Any(item => string.Equals((string?)item.Element("filename"), virtualPath, StringComparison.OrdinalIgnoreCase));
+        if (existing)
+            return;
+        dataFiles.Add(new XElement("Item",
+            new XElement("filename", virtualPath),
+            new XElement("fileType", fileType),
+            new XElement("overlay", new XAttribute("value", "false")),
+            new XElement("disabled", new XAttribute("value", "true")),
+            new XElement("persistent", new XAttribute("value", persistent ? "true" : "false"))));
+        if (!changesToEnable.Elements("Item").Any(item => string.Equals(item.Value, virtualPath, StringComparison.OrdinalIgnoreCase)))
+            changesToEnable.Add(new XElement("Item", virtualPath));
+    }
+
+    AddDlcDataFile("dlc_bmwm5f90:/common/data/peds.meta", "PED_METADATA_FILE", false);
+    AddDlcDataFile("dlc_bmwm5f90:/peds.rpf", "RPF_FILE", true);
+
     var dlc = RpfFile.CreateNew(Path.GetDirectoryName(dlcOutputPath)!, Path.GetFileName(dlcOutputPath), RpfEncryption.OPEN);
-    AddFile(dlc.Root, Path.Combine(root, "content.xml"), "content.xml");
-    AddFile(dlc.Root, Path.Combine(root, "setup2.xml"), "setup2.xml");
+    AddBytes(dlc.Root, "content.xml", Encoding.UTF8.GetBytes(contentDocument.ToString(SaveOptions.DisableFormatting)));
+    AddFile(dlc.Root, Path.Combine(bmwSourceRoot, "setup2.xml"), "setup2.xml");
 
     var common = EnsureDirectory(dlc.Root, "common");
     var data = EnsureDirectory(common, "data");
     foreach (var name in new[] { "handling.meta", "carvariations.meta", "carcols.meta", "dlctext.meta" })
-        AddFile(data, Path.Combine(metadata, name), name);
+        AddFile(data, Path.Combine(bmwMetadata, name), name);
 
     var dataLevels = EnsureDirectory(data, "levels");
     var dataGta5 = EnsureDirectory(dataLevels, "gta5");
-    AddFile(dataGta5, Path.Combine(metadata, "levels", "gta5", "vehicles.meta"), "vehicles.meta");
+    AddFile(dataGta5, Path.Combine(bmwMetadata, "levels", "gta5", "vehicles.meta"), "vehicles.meta");
+    AddFile(data, franklinPedMeta, "peds.meta");
 
     var x64 = EnsureDirectory(dlc.Root, "x64");
     var mods = RpfFile.CreateNew(x64, "bmwm5f90_mods.rpf", RpfEncryption.OPEN);
@@ -71,10 +108,19 @@ if (args.Length > 0 && args[0] == "--pack-bmw-dlc")
     foreach (var name in new[] { "bmwm5f90.yft", "bmwm5f90.ytd", "bmwm5f90_hi.yft" })
         AddFile(vehicleRpf.Root, Path.Combine(vehicleSource, name), name);
 
+    var pedsRpf = RpfFile.CreateNew(dlc.Root, "peds.rpf", RpfEncryption.OPEN);
+    foreach (var name in new[] { "franklin.ydd", "franklin.yft", "franklin.ymt", "franklin.ytd" })
+        AddFile(pedsRpf.Root, Path.Combine(franklinNativeSource, name), name);
+    AddFile(pedsRpf.Root, franklinYcd, "niko_franklin_retargeted.ycd");
+
+    var pedsMetaText = File.ReadAllText(franklinPedMeta);
+    if (!pedsMetaText.Contains("<Name>franklin</Name>", StringComparison.OrdinalIgnoreCase))
+        throw new InvalidDataException("Franklin peds.meta does not register the expected model name.");
+
     var check = new RpfFile(dlcOutputPath, Path.GetFileName(dlcOutputPath));
     check.ScanStructure(null, null);
     if (!string.IsNullOrEmpty(check.LastError))
-        throw new InvalidDataException("Packed DLC RPF failed CodeWalker scan: " + check.LastError);
+        throw new InvalidDataException("Packed mobile-slice DLC failed CodeWalker scan: " + check.LastError);
 
     var archives = WalkArchives(check).ToArray();
     var resources = archives
@@ -82,10 +128,15 @@ if (args.Length > 0 && args[0] == "--pack-bmw-dlc")
         .OfType<RpfResourceFileEntry>()
         .Select(entry => entry.Name)
         .ToHashSet(StringComparer.OrdinalIgnoreCase);
-    var requiredResources = new[] { "bmwm5f90.yft", "bmwm5f90.ytd", "bmwm5f90_hi.yft" };
+    var requiredResources = new[]
+    {
+        "bmwm5f90.yft", "bmwm5f90.ytd", "bmwm5f90_hi.yft",
+        "franklin.ydd", "franklin.yft", "franklin.ymt", "franklin.ytd",
+        "niko_franklin_retargeted.ycd"
+    };
     var missingResources = requiredResources.Where(name => !resources.Contains(name)).ToArray();
     if (missingResources.Length > 0)
-        throw new InvalidDataException("Packed DLC is missing native vehicle resources: " + string.Join(", ", missingResources));
+        throw new InvalidDataException("Packed mobile-slice DLC is missing native resources: " + string.Join(", ", missingResources));
 
     var dlcReport = new
     {
@@ -96,14 +147,17 @@ if (args.Length > 0 && args[0] == "--pack-bmw-dlc")
         encryption = "OPEN",
         archiveCount = archives.Length,
         resourceCount = resources.Count,
-        requiredVehicleResources = requiredResources,
-        modPartCount = mods.Root.Files.Count,
-        nativeVehicleResourcesFound = requiredResources,
+        vehicleResourceCount = vehicleRpf.Root.Files.Count,
+        vehicleModPartCount = mods.Root.Files.Count,
+        franklinPedResourceCount = pedsRpf.Root.Files.Count,
+        requiredResources,
+        pedsMetadataRegistered = true,
         codeWalkerRoundTrip = true,
         notes = new[]
         {
-            "The DLC package was built from the supplied native RSC7 resources and vehicle metadata.",
-            "A successful RPF7 scan validates archive structure, not in-game DLC mounting or vehicle spawning.",
+            "The DLC package contains the native BMW vehicle resources and the Franklin ped resources.",
+            "The retargeted YCD is packaged as a native RSC7 resource, but the current peds.meta still uses its existing generic movement set; playback wiring remains a separate validation task.",
+            "A successful RPF7 scan validates archive structure, not in-game DLC mounting, Franklin spawning, animation playback or vehicle spawning.",
             "The generated DLC binary is intentionally not uploaded as a public CI artifact."
         }
     };
