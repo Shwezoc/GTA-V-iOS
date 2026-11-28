@@ -82,7 +82,9 @@ jobs:
             $entries | ForEach-Object { Write-Host "$($_.FullName) ($($_.Length) bytes)" }
             $nikoSrc = "$env:RUNNER_TEMP/niko-src"
             New-Item -ItemType Directory -Force -Path $nikoSrc | Out-Null
-            $zip.ExtractToDirectory($nikoSrc)
+            $zip.Dispose()
+  $zip = $null
+  [System.IO.Compression.ZipFile]::ExtractToDirectory($archives[0].FullName, $nikoSrc)
           } finally { $zip.Dispose() }
       - name: Decode all supplied YCD resources
         shell: pwsh
