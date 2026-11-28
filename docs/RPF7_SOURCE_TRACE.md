@@ -5,36 +5,46 @@
 The upstream iOS path currently has two distinct data paths:
 
 1. `gtav/src/ios_setup.mm` classifies and installs the user's Disc 1, Disc 2 and TU27 inputs. It delegates to `loader/src/install.h` and `loader/src/sources.h`.
-2. The iOS runtime then starts the recompiled game through `gtav/src/main.cpp` / ReXGlue. The game code is generated from the user's own game data; `gtav/src/game_bridge.cpp` exposes runtime services to that generated code.
+2. The iOS runtime starts the recompiled game through `gtav/src/main.cpp` / ReXGlue. The game code is generated from the user's own game data; `gtav/src/game_bridge.cpp` exposes runtime services to that generated code.
 
 The iOS setup code is **not** an RPF7 DLC mount implementation. It is a source/install selector for the original disc/update inputs. The native renderer path in `gtav/src/native/paths.h` only establishes app Documents paths for SPIR-V, logs and caches; it does not mount DLC archives.
 
-The public upstream tree inspected for this trace contains no dedicated RPF7/DLC mount adapter in the app-side `gtav/src` files. This is a bounded finding, not proof that the generated game code or every SDK dependency lacks archive support.
+## Additional runtime bridge inspection
+
+The current upstream tree was checked recursively, including `gtav/fs` and `gtav/src`:
+
+- `gtav/fs/fs_crt.cpp` provides freestanding C runtime primitives (`memcpy`, `memmove`, `memset`, `memcmp`); it is not a virtual filesystem.
+- `gtav/fs/game_dll.cpp` exports the generated PPC image configuration only.
+- `gtav/src/game_bridge.cpp` exports MMIO, timebase, indirect PPC resolution, global locking and trap services. It does not expose a file-open, file-read, archive-mount or DLC-registration API.
+- `gtav/src/main.cpp` selects the generated image configuration and creates the ReXGlue app; it contains no DLC mount sequence.
+- No standalone filesystem/RPF implementation or RPF7 mount adapter is tracked in the inspected app-side upstream tree.
+
+This is a bounded source-tree finding. It does **not** prove that generated TU27 game code or an external SDK dependency has no internal file-device implementation. It does establish that adding a mount call to the existing iOS app bridge would be guesswork until the generated game-side initialization is traced.
 
 ## Consequence for the Franklin + BMW package
 
-The repository's RPF7 package is a valid packaging artifact (the existing CodeWalker round-trip check verifies archive structure and entry enumeration). That alone does not make the game discover or load it.
+The repository's RPF7 package is a packaging artifact. CodeWalker's round-trip check verifies archive structure and entry enumeration; the independent Python inspector checks the unencrypted/open RPF7 TOC and directory/file bounds. Neither check makes the game discover or load the archive.
 
-Do not wire the package into the app by copying it into an arbitrary folder or by editing a guessed DLC list. The correct integration point must be established by tracing the actual game-side file-device / packfile initialization and the expected TU27 DLC directory conventions.
+Do not wire the package into the app by copying it into an arbitrary folder or by editing a guessed DLC list. The correct integration point must be established by tracing the actual generated game-side file-device / packfile initialization and the expected TU27 DLC directory conventions.
 
 ## Next engineering steps
 
-- Trace `loader/src/install.cpp` and `loader/src/sources.cpp` to document exactly which files are installed and where.
-- Inspect the generated TU27 game initialization / file-device hooks available to the clean-room build; identify the supported archive mount path and lifecycle.
-- If an extension point exists, add a narrowly scoped adapter for a test RPF7 archive; otherwise document the missing hook before designing a reader.
-- Add synthetic archive fixtures and assert that all 26 entries in the current Franklin + BMW slice are enumerated and resolvable.
-- Only after the runtime can resolve the resources should Franklin spawn/animation and BMW spawn tests be attempted in-app.
+- Trace generated TU27 game initialization and file-device / packfile call sites using symbols and call references from the user's own local build.
+- Identify the actual file-device ABI, archive registration lifecycle, and path resolution behavior before writing an adapter.
+- Build a synthetic test archive and exercise the real game-side resource lookup path; do not treat a standalone parser test as a mount test.
+- If a supported extension point exists, add a narrowly scoped RPF7 adapter and test lookup/open/read/seek/close against synthetic fixtures.
+- Only after runtime resource resolution works should Franklin spawn/animation and BMW spawn tests be attempted in-app.
 
 ## Validation boundary
 
 Current verified results remain separate:
-- RPF7 structural packaging and CodeWalker round-trip: passed.
+- RPF7 packaging and CodeWalker round-trip: previously passed.
 - iOS runtime shell CI: passed.
+- RPF7 structural inspector synthetic tests: rerun is in progress after correcting the fixture.
 - RPF7 mounting in the RAGE runtime: **not implemented / not verified**.
 - Franklin/BMW in-game spawning, animation playback, vehicle handling and playable gameplay: **not verified**.
 
 Game-derived code, shader caches and proprietary game data remain user-local; do not upload them to public CI artifacts or commit them to this repository.
-
 
 ## Loader confirmation
 
