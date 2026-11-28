@@ -46,7 +46,7 @@ def inspect(path: Path) -> dict:
     def name_at(offset: int, allow_empty: bool = False) -> str:
         if offset >= len(names_blob):
             raise RpfError(f"name offset out of range: {offset}")
-        end = names_blob.find(b"\\0", offset)
+        end = names_blob.find(bytes((0,)), offset)
         if end < 0:
             raise RpfError(f"unterminated name at offset {offset}")
         try:
