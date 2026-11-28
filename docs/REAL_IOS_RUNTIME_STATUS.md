@@ -65,7 +65,7 @@ The GLB files are interchange/test formats, not proof that the upstream RAGE ren
 
 The upstream documented iOS baseline is A14 or newer; its development notes identify an A15 iPhone 13 mini as the tested device. The user's iPhone 11 uses A13 and is below that baseline.
 
-We will investigate A13 experimentally. A successful `-mcpu=apple-a13` compile would still not prove that the full runtime is stable on iPhone 11. Compatibility requires installation and real-device testing.
+The native CI matrix now attempts both the documented `apple-a14` baseline and an experimental `apple-a13` compile. A successful `-mcpu=apple-a13` compile would still not prove that the full runtime is stable on iPhone 11. Compatibility requires installation and real-device testing.
 
 ## Build and installation boundaries
 
