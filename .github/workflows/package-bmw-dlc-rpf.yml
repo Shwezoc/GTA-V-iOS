@@ -51,7 +51,7 @@ jobs:
           git -C third_party/CodeWalker checkout 485d56bec00262ed7fa472261cce7bbc6202b96e
           dotnet build tools/ycd-inspector/YcdInspector.csproj --configuration Release
 
-      - name: Build native BMW DLC RPF7 and round-trip verify with CodeWalker
+      - name: Build native Franklin + BMW mobile-slice DLC RPF7 and round-trip verify with CodeWalker
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
