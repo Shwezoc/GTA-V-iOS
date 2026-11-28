@@ -63,6 +63,7 @@ jobs:
             throw "CodeWalker RPF7 round-trip validation did not pass"
           }
           Write-Host "BMW_DLC_RPF7_VALID bytes=$($report.bytes) resources=$($report.resourceCount) modParts=$($report.modPartCount)"
+          $report | ConvertTo-Json -Depth 8 | Write-Host
           Remove-Item "work/out/dlc.rpf" -Force
 
       - name: Upload metadata-only RPF7 validation report
