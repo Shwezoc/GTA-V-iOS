@@ -87,7 +87,7 @@ var animations = (ycd.AnimMapEntries ?? Array.Empty<AnimationMapEntry>())
 
 var allIds = animations.SelectMany(animation => animation.boneIds).Distinct().OrderBy(id => id).ToArray();
 var mappedIds = skeletonBones == null
-    ? Array.Empty<int>()
+    ? Array.Empty<ushort>()
     : allIds.Where(skeletonBones.ContainsKey).ToArray();
 var unmappedIds = skeletonBones == null
     ? Array.Empty<ushort>()
