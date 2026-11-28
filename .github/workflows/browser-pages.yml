@@ -116,9 +116,10 @@ jobs:
           }
           await page.screenshot({ path: "bmw-viewer-smoke.png", fullPage: false });
           console.log("BMW M5 F90 GLB loaded and rendered in Chromium: " + JSON.stringify(diag));
+          await page.close(); // release the high-detail BMW viewer before loading both assets together
           const driveErrors = [];
           const driveFailedRequests = [];
-          const drivePage = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+          const drivePage = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
           drivePage.on("pageerror", e => driveErrors.push(e.message));
           drivePage.on("console", m => { if (m.type() === "error") driveErrors.push(m.text()); });
           drivePage.on("requestfailed", r => driveFailedRequests.push(r.url() + ": " + (r.failure()?.errorText || "failed")));
@@ -140,8 +141,26 @@ jobs:
           if (driveResponse?.status() !== 200 || driveDiag.state !== "СЦЕНА ГОТОВА" || driveErrors.length || driveFailedRequests.length) {
             throw new Error("Franklin + BMW drive scene failed: " + JSON.stringify({http: driveResponse?.status(), driveDiag, driveErrors, driveFailedRequests}));
           }
+          const enterControl = drivePage.locator("#enter");
+          const initialControl = await enterControl.evaluate(el => ({display: getComputedStyle(el).display, disabled: el.disabled}));
+          if (initialControl.display === "none") throw new Error("Mobile enter-car button is hidden on foot: " + JSON.stringify(initialControl));
+          await drivePage.keyboard.down("a");
+          await drivePage.waitForTimeout(650);
+          await drivePage.keyboard.up("a");
+          await drivePage.waitForFunction(() => document.querySelector("#enter")?.disabled === false, null, { timeout: 5000 });
+          await enterControl.click();
+          await drivePage.waitForFunction(() => document.body.classList.contains("in-car"), null, { timeout: 3000 });
+          const inCarControls = await drivePage.evaluate(() => ({
+            inCar: document.body.classList.contains("in-car"),
+            pedals: getComputedStyle(document.querySelector(".pedals")).display,
+            steer: getComputedStyle(document.querySelector(".steer")).display,
+            enterText: document.querySelector("#enter").innerText
+          }));
+          if (!inCarControls.inCar || inCarControls.pedals === "none" || inCarControls.steer === "none") {
+            throw new Error("Vehicle controls did not activate after entering BMW: " + JSON.stringify(inCarControls));
+          }
           await drivePage.screenshot({ path: "franklin-bmw-drive-test.png", fullPage: false });
-          console.log("Franklin GLB and BMW GLB both loaded in the interactive scene: " + JSON.stringify(driveDiag));
+          console.log("Franklin + BMW loaded; mobile enter/drive controls verified: " + JSON.stringify({driveDiag,inCarControls}));
           await drivePage.close();
           await browser.close();
           NODE
