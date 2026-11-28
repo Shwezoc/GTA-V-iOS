@@ -3,7 +3,8 @@
 # This script MUST run on macOS. It never uploads or commits generated game code.
 #
 # Usage:
-#   tools/build_local_ios_game_dylib.sh LLVM_BIN GENERATED_DIR IOS_SHELL_ROOT OUT_DIR [JOBS]
+#   IOS_CPU_TARGET=apple-a13 tools/build_local_ios_game_dylib.sh LLVM_BIN GENERATED_DIR IOS_SHELL_ROOT OUT_DIR [JOBS]
+#   IOS_CPU_TARGET defaults to apple-a14; supported values are apple-a13, apple-a14, apple-a15.
 #
 # IOS_SHELL_ROOT is the extracted no-game-data artifact root containing:
 #   GTAV.app/librexruntime.dylib, interface/, include/simde/
@@ -28,13 +29,21 @@ GENERATED="$(cd "$2" && pwd)"
 SHELL_ROOT="$(cd "$3" && pwd)"
 OUT="$4"
 JOBS="${5:-4}"
+IOS_CPU_TARGET="${IOS_CPU_TARGET:-apple-a14}"
 APP="$SHELL_ROOT/GTAV.app"
+
+case "$IOS_CPU_TARGET" in
+  apple-a13|apple-a14|apple-a15) ;;
+  *) echo "ERROR: IOS_CPU_TARGET must be apple-a13, apple-a14, or apple-a15"; exit 2 ;;
+esac
+export GTAV_IOS_CPU_TARGET="$IOS_CPU_TARGET"
 INTERFACE="$SHELL_ROOT/interface"
 SIMDE_ROOT="$SHELL_ROOT/include"
 RUNTIME="$APP/librexruntime.dylib"
 
 for path in \
   "$UPSTREAM/tools/game_dll/build_game_dll.py" \
+  "$ROOT/patches/ios-game-dylib-cpu-target.patch" \
   "$UPSTREAM/tools/game_dll/libSystem_ios.tbd" \
   "$UPSTREAM/gtav/fs/gtav_pch.h" \
   "$APP/gtav" \
@@ -70,10 +79,21 @@ GENERATED_COPY="$WORK/generated"
 mkdir -p "$GENERATED_COPY"
 ditto "$GENERATED" "$GENERATED_COPY"
 
+CPU_PATCH="$ROOT/patches/ios-game-dylib-cpu-target.patch"
+if git -C "$UPSTREAM" apply --reverse --check "$CPU_PATCH" >/dev/null 2>&1; then
+  : # Already patched by tools/prepare_upstream_ios_deps.sh.
+elif git -C "$UPSTREAM" apply --check "$CPU_PATCH"; then
+  git -C "$UPSTREAM" apply "$CPU_PATCH"
+else
+  echo "ERROR: cannot apply the pinned iOS CPU-target patch to upstream build_game_dll.py"
+  exit 9
+fi
+
 echo "=== Building local gtav_game.dylib ==="
 echo "Upstream: $(git -C "$UPSTREAM" rev-parse HEAD)"
 echo "Generated source: $GENERATED"
 echo "Shell bundle: $APP"
+echo "CPU target: $IOS_CPU_TARGET"
 echo "No game data or generated source will be uploaded."
 
 echo "=== Auditing local generated filesystem/archive call-site candidates ==="
@@ -122,6 +142,7 @@ fi
 cat > "$OUT/LOCAL-BUILD-STATUS.txt" <<EOF
 Local iOS game library build completed.
 Architecture: $ARCHS
+CPU target: $IOS_CPU_TARGET
 Upstream revision: $(git -C "$UPSTREAM" rev-parse HEAD)
 This output is generated from locally supplied game data and must remain local.
 Do not commit, publish, or upload gtav_game.dylib or generated game sources.
