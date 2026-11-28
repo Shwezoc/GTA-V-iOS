@@ -42,11 +42,11 @@ diff --git a/gtav/src/native/backend.cpp b/gtav/src/native/backend.cpp
 index 0000000..0000000 100644
 --- a/gtav/src/native/backend.cpp
 +++ b/gtav/src/native/backend.cpp
-@@ -278,2 +278,4 @@ REXCVAR_DEFINE_BOOL(gtav_native_write_watch_verify, false, "GTAV",
-                     "Native renderer: also hash textures and buffers the write watch says are unchanged, and "
-                     "log how many had changed (diagnostic)");
+@@ -283,2 +283,4 @@
+ 
 +REXCVAR_DEFINE_BOOL(gtav_native_scene_probe, true, "GTAV",
 +                    "Native renderer: draw a depth-tested 3D Plume cube over the presented frame (diagnostic)");
+ namespace plume {
 @@ -1987,1 +1987,36 @@
 -  // FPS counter (PSDigits) over the bound framebuffer, top-left corner at (x, y).
 +  // Depth-tested 3D cube bring-up probe. Uses the existing Plume device and present command list.
@@ -99,11 +99,7 @@ diff --git a/gtav/src/native/renderer.cpp b/gtav/src/native/renderer.cpp
 index 0000000..0000000 100644
 --- a/gtav/src/native/renderer.cpp
 +++ b/gtav/src/native/renderer.cpp
-@@ -1219,4 +1219,11 @@
-     } else {
-       list_->clearColor(0, plume::RenderColor(0.12f, 0.0f, 0.12f, 1.0f));
-     }
--    // Frames presented over the last second, drawn in the top-left corner (--gtav_native_fps).
+@@ -1222,1 +1222,8 @@
 +    // Depth is cleared only for the custom scene; the guest game's color blit remains untouched.
 +    if (backend_ok_ && image < scene_probe_depth_.size() && scene_probe_depth_[image]) {
 +      list_->barriers(plume::RenderBarrierStage::GRAPHICS,
