@@ -82,30 +82,50 @@ The standalone XML describes the clip-set fallback from `move_m@wfire@nikowalk` 
 | Item | Audit result |
 |---|---|
 | ZIP integrity | Passed for both archives |
-| Franklin static mesh data | Present |
-| Franklin static GLB conversion | Completed locally; not in repo |
-| Franklin material file and textures | Present |
-| Franklin skeleton / skin weights | Not present in supplied OBJ |
-| Niko YCD animation resources | Present |
-| Niko clip-set configuration | Present |
-| YCD clip names and per-bone tracks | Not yet decoded |
-| Franklin/Niko skeleton compatibility | Not established |
-| Playback in the iOS RAGE runtime | Not implemented or tested |
+| Franklin source mesh / textures | Present |
+| Franklin source OBJ armature / weights | Not present in the supplied OBJ |
+| Generated Franklin GTA Freemode Male rig | Exported; 128-bone armature and weighted mesh |
+| Niko YCD clip names / animation tracks | Decoded by CodeWalker |
+| Niko walk-style bone compatibility | Exact 106 / 106 tag matches against Freemode Male |
+| Generic Niko dictionary compatibility | 106 / 119 unique tags match; 13 remain unresolved |
+| Sollumz import and retarget | Completed for all four unique walk-style animations |
+| Animated GLB intermediate | Exported and independently validated |
+| Playback in the native iOS RAGE/Plume runtime | Not implemented or tested |
 
-## 4. Correct integration path
+## 4. Franklin rig and Niko retarget result
 
-1. Obtain a Franklin-compatible GTA V ped skeleton resource (normally the relevant YFT/YDD/YMT family, or a legally usable exported rig) and verify its bone hierarchy.
-2. Decode the supplied YCD resources and enumerate clip names, frame counts, track bone IDs and timing. CodeWalker has a YCD resource reader and XML export path.
-3. Compare decoded track bone IDs against the Franklin skeleton. Do not assume Niko's animation set is automatically compatible merely because both are GTA V peds.
-4. If the rigs differ, retarget the animation tracks or map them through a compatible GTA V ped skeleton.
-5. Convert the Franklin mesh into the runtime's supported skinned-mesh representation, including vertex weights, inverse bind matrices, materials and textures.
-6. Add a native animation sampling/skinning path to the RAGE/Plume runtime and verify it on device.
+The Franklin OBJ was rigged with Muto Ped Rig v0.3.2 and Sollumz v2.9.0 onto the GTA V Freemode Male fallback skeleton:
+- Armature: `franklin_skel`, 128 bones
+- Weighted mesh: 19,200 vertices
+- GTA resource export: `franklin.ydd`, `franklin.yft`, `franklin.ymt`, `franklin.ytd`, `peds.meta`, resource manifest and client stub
+- This is a Freemode Male add-on ped, not the original protagonist-specific `player_one` Franklin skeleton.
 
-## 5. Automated YCD decoder
+The Niko walk-style dictionary was decoded and imported by Sollumz:
+- Source clips: `idle_intro`, `idle`, `walk`, `run`, `sprint`
+- Four unique animation actions; 430 F-curves per action
+- All 106 Niko bone IDs matched the Franklin rig; no missing bone tags
+- The shared `idle` / `idle_intro` animation is represented by one NLA strip to avoid duplicate curves.
 
-A CodeWalker-based inspector has been added under `tools/ycd-inspector/`. It calls CodeWalker's `RpfFile.GetResourceFile<YcdFile>()` path so the RSC7 header and compressed resource payload are handled by the upstream parser, then writes a CodeWalker XML export and a JSON report containing clip names, animation frame counts, durations, bone IDs and track types.
+Latest successful pipeline:
+- Workflow: https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46110027534
+- Artifact: https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46110027534/artifacts/15249147076
+- Animated GLB: `niko-animated/franklin_niko_animated.glb`
+- GLB validation: 1 mesh, 1 skin, 128 joints, 4 animation entries, 130 nodes
+- The artifact also contains the retargeted Blender scene, report, and GTA Freemode ped resource files.
 
-The GitHub Actions workflow is `.github/workflows/decode-niko-ycd.yml`. A push to `minimal-runtime` builds the inspector; a manual run can decode an archive supplied through a direct HTTPS ZIP URL and upload the XML/JSON output as an artifact. The inspector and workflow have been committed, but a successful CI build and a decoded output artifact are **not yet verified**. The chat-uploaded ZIP is not directly addressable by the GitHub runner, so the manual decode still needs a direct HTTPS download URL.
+This proves offline YCD decode, exact bone-tag matching, Sollumz animation import/retarget, and export of a skinned animated GLB. It does not prove that the native iOS RAGE/Plume runtime can load or play this GLB.
+
+## 5. Automated asset pipeline
+
+- `.github/workflows/decode-niko-ycd.yml` builds the CodeWalker-based inspector, decodes both supplied YCD resources, matches their bone IDs against the pinned Muto Ped Rig Freemode Male reference, and exports skeleton-labelled channel intermediates.
+- `tools/ycd-inspector/export_niko_animation.py` preserves decoded YCD channel encodings and sample arrays in a documented intermediate JSON format.
+- `.github/workflows/rig-franklin-model.yml` downloads the supplied Franklin and Niko archives, creates the Freemode Male Franklin rig, imports the Niko walk-style YCD through Sollumz, retargets all four unique animations, and exports the animated GLB.
+- `tools/retarget_niko_animations.py` validates bone coverage and action paths, creates NLA clips, exports the skinned GLB, and checks its mesh, skin and animation tables.
+- Third-party source archives and converted model assets are not committed to the repository; CI artifacts expire after 30 days.
+
+## 6. Next native-runtime stage
+
+The animated GLB is an intermediate asset, not a native GTA V resource. The repository's current iOS host is still a diagnostic Swift/Metal shell, and the upstream GTA runtime is not yet linked into that target. The next engineering work is to integrate the real runtime first, then decide whether to add a supported asset bridge or use the game's native YCD animation loader. Native sampling, pose evaluation, GPU skinning and on-device playback must be separately implemented and verified.
 
 ## 6. References
 
