@@ -1,0 +1,81 @@
+name: Inspect GTAV model archive from SwissTransfer
+
+on:
+  workflow_dispatch:
+    inputs:
+      transfer_url:
+        description: "SwissTransfer download URL (/dl/<id> or /d/<id>)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Validate transfer URL and resolve file metadata
+        id: meta
+        env:
+          TRANSFER_URL: ${{ inputs.transfer_url }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const u = new URL(process.env.TRANSFER_URL);
+          if (u.protocol !== "https:" || !["www.swisstransfer.com"].includes(u.hostname)) {
+            throw new Error("Only https://www.swisstransfer.com transfer links are accepted");
+          }
+          const m = u.pathname.match(/^\/(?:dl|d)\/([0-9a-f-]{36})\/?$/i);
+          if (!m) throw new Error("Unrecognized SwissTransfer link format");
+          require("fs").writeFileSync("transfer-id.txt", m[1]);
+          NODE
+          ID="$(cat transfer-id.txt)"
+          curl --fail --silent --show-error --location \
+            -H 'Accept: application/json, text/plain, */*' \
+            -H 'User-Agent: Mozilla/5.0' \
+            "https://www.swisstransfer.com/api/links/$ID" -o transfer.json
+          node <<'NODE'
+          const fs = require("fs");
+          const raw = JSON.parse(fs.readFileSync("transfer.json","utf8"));
+          const d = raw.data ?? raw;
+          const c = d.container ?? {};
+          const files = c.files ?? d.files ?? [];
+          if (!files.length) throw new Error("SwissTransfer API returned no files; transfer may be unavailable or API changed");
+          if (files.length !== 1) throw new Error("Expected one archive, found " + files.length);
+          const f = files[0];
+          const host = d.downloadHost;
+          const link = d.linkUUID ?? d.UUID ?? fs.readFileSync("transfer-id.txt","utf8").trim();
+          if (!host || !f.UUID || !f.fileName) throw new Error("Missing download host or file metadata");
+          const info = {host, link, fileUUID:f.UUID, fileName:f.fileName, size:f.fileSizeInBytes ?? null};
+          fs.writeFileSync("resolved.json", JSON.stringify(info));
+          console.log("Resolved:", JSON.stringify(info));
+          NODE
+
+      - name: Download archive and inspect contents
+        run: |
+          set -euo pipefail
+          HOST="$(node -p "require('./resolved.json').host")"
+          LINK="$(node -p "require('./resolved.json').link")"
+          FILE="$(node -p "require('./resolved.json').fileUUID")"
+          NAME="$(node -p "require('./resolved.json').fileName")"
+          case "$HOST" in *[!a-zA-Z0-9.-]*|"") echo "Invalid download host"; exit 1;; esac
+          case "$NAME" in *.rar|*.RAR) ;; *) echo "Expected a RAR archive, got: $NAME"; exit 1;; esac
+          curl --fail --location --retry 2 --output model.rar "https://$HOST/api/download/$LINK/$FILE"
+          sudo apt-get update -qq
+          sudo apt-get install -y p7zip-full
+          7z t model.rar
+          7z l -slt model.rar > archive-list.txt
+          {
+            echo "## SwissTransfer archive inspection"
+            echo ""
+            echo "- Original name: $NAME"
+            echo "- Downloaded bytes: $(stat -c%s model.rar)"
+            echo "- SHA-256: $(sha256sum model.rar | cut -d' ' -f1)"
+            echo ""
+            echo "### Archive entries"
+            echo ' ```text'
+            sed -n '1,240p' archive-list.txt
+            echo ' ```'
+          } >> "$GITHUB_STEP_SUMMARY"
