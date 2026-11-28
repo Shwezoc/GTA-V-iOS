@@ -46,6 +46,17 @@ jobs:
         run: |
           git clone https://github.com/dexyfex/CodeWalker.git third_party/CodeWalker
           git -C third_party/CodeWalker checkout 485d56bec00262ed7fa472261cce7bbc6202b96e
+      - name: Fetch pinned Freemode Male skeleton reference
+        shell: pwsh
+        run: |
+          $uri = "https://raw.githubusercontent.com/B7Kompirine/muto-ped-rig/v0.3.2/data/template_mp_m.json"
+          $target = "$env:RUNNER_TEMP/mp_m_skeleton.json"
+          Invoke-WebRequest -Uri $uri -OutFile $target
+          $skeleton = Get-Content $target -Raw | ConvertFrom-Json
+          if ($skeleton.armature -ne "mp_m_freemode_01" -or $skeleton.bones.Count -lt 100) {
+            throw "Pinned Freemode Male skeleton reference failed validation"
+          }
+          Write-Host "Skeleton reference: $($skeleton.armature), $($skeleton.bones.Count) bones"
       - name: Download and validate source archive
         shell: pwsh
         env:
@@ -90,7 +101,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $out | Out-Null
           $files = Get-ChildItem "$env:RUNNER_TEMP/niko-src" -Recurse -File -Filter *.ycd
           foreach ($file in $files) {
-            dotnet run --configuration Release --project tools/ycd-inspector/YcdInspector.csproj -- "$($file.FullName)" "$out"
+            dotnet run --configuration Release --project tools/ycd-inspector/YcdInspector.csproj -- "$($file.FullName)" "$out" "$env:RUNNER_TEMP/mp_m_skeleton.json"
             if ($LASTEXITCODE -ne 0) { throw "YCD decode failed: $($file.Name)" }
           }
       - uses: actions/upload-artifact@v4
