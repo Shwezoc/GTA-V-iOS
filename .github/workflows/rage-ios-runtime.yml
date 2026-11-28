@@ -8,6 +8,7 @@ on:
     paths:
       - "upstream/gtav-recomp"
       - "tools/prepare_upstream_ios_deps.sh"
+      - "patches/*.patch"
       - ".github/workflows/rage-ios-runtime.yml"
 
 concurrency:
