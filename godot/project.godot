@@ -1,0 +1,22 @@
+; Shwezov GTA V mobile slice — Godot prototype
+config_version=5
+
+[application]
+config/name="Shwezov GTA Mobile Slice"
+run/main_scene="res://scenes/main.tscn"
+
+[display]
+window/size/viewport_width=1170
+window/size/viewport_height=2532
+window/size/window_width_override=900
+window/size/window_height_override=600
+window/stretch/mode="canvas_items"
+
+[rendering]
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+textures/default_filters/use_nearest_mipmap_filter=false
+environment/defaults/default_clear_color=Color(0.48, 0.62, 0.72, 1)
+
+[physics]
+3d/default_gravity=9.8
