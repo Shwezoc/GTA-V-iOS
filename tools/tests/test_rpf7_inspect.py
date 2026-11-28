@@ -11,12 +11,12 @@ SPEC.loader.exec_module(mod)
 
 def fixture(path: Path, encryption=mod.OPEN):
     # Two TOC records: root directory and one uncompressed binary file.
-    names = b"root\\0hello.txt\\0"
+    names = b"root\0hello.txt\0"
     count = 2
     toc = bytearray()
     toc += struct.pack("<4I", 0, 0x7FFFFF00, 1, 1)
     name_off = 5
-    packed = name_off | (0 << 16) | (1 << 40)
+    packed = name_off | (1 << 40)
     toc += struct.pack("<QII", packed, 5, 0)
     data = bytearray(1024)
     data[:16] = struct.pack("<4I", mod.MAGIC, count, len(names), encryption)
