@@ -39,7 +39,7 @@ See [LIGHTWEIGHT_PORT_SCOPE.md](docs/LIGHTWEIGHT_PORT_SCOPE.md) for the scope, v
 
 These are valuable game resources, but GLB is currently an interchange/test format, not proof that the upstream RAGE renderer can load them directly. The original RAGE resource path must be preserved for native integration.
 
-The [iOS asset compatibility audit](.github/workflows/ios-asset-audit.yml) downloads the existing Franklin and BMW CI artifacts and validates their structure without committing the binary assets to the public repository.
+The [iOS asset compatibility audit](.github/workflows/ios-asset-audit.yml) downloads the existing Franklin and BMW CI artifacts and validates their structure without committing the binary assets to the public repository. The [BMW RPF7 packaging workflow](.github/workflows/package-bmw-dlc-rpf.yml) also builds a native DLC archive in ephemeral CI, verifies it with CodeWalker, and retains only a metadata report.
 
 ## Native runtime status
 
