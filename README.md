@@ -1,72 +1,81 @@
 # GTA V iOS Port — Shwezoc
 
-Experimental iOS integration workspace for the open-source GTA V recompilation project.
+**Goal:** an unofficial, lightweight native iOS port of GTA V. This is a porting project, not a new GTA-inspired game and not a full desktop-game installation copied onto a phone.
 
-> This repository contains original integration code and tooling only. It does not include Rockstar Games source code, proprietary RAGE Engine source, game executables, generated game code, shaders, or game assets. Use only game data you are legally entitled to use.
+The first milestone is a small playable slice that preserves GTA V's identity and selected original systems while loading only a limited area, selected characters/vehicles, and the required gameplay resources.
 
-## Target
-- Native platform: iOS / arm64
-- Current visual prototype: SwiftUI + SceneKit (Metal-backed)
-- Upstream runtime: `andrewnakas/gtav-recomp` (pinned Git submodule)
-- Intended renderer: upstream Plume/Vulkan through MoltenVK, hosted by SDL3/UIKit
+> The repository contains original integration code and build tooling. It does not publish Rockstar source code, proprietary game executables, generated game code, game shaders, or proprietary game archives. Use only game data you are legally entitled to use.
 
-## Current visual milestone — 3D walk-test, not yet GTA V
-The app now contains a small 3D environment with a procedural proxy humanoid walking in place, a road, ground, distant buildings, lighting and an orbitable camera. This is a device/rendering milestone only: the proxy is not the original Michael De Santa model, and the scene is not rendered by RAGE or the upstream GTA V runtime.
+## Target and constraints
 
-The actual upstream ReXGlue/Plume runtime is **not yet linked** to the iOS app. The SceneKit prototype must not be represented as a playable GTA V build. The diagnostic IPA, if CI completes, is only a prototype shell.
+- Development device: iPhone 11 / A13 (experimental target; compatibility is not guaranteed).
+- User-side development: iPhone only. No local Mac or Windows PC is assumed.
+- Build infrastructure: GitHub Actions, including cloud macOS runners for iOS-native components.
+- Preferred runtime direction: `andrewnakas/gtav-recomp` with ReXGlue + Plume/Xenos and MoltenVK.
+- Important distinction: `gtav-recomp` is a static recompilation/runtime project; it is not Rockstar's original RAGE Engine source code.
 
-## Actual upstream iOS pipeline
-The pinned upstream iOS port documents these required stages:
+## Lightweight port scope
 
-1. Build the iOS ReXGlue SDK runtime and its dependencies (including patched Plume, SDL3 and FFmpeg).
-2. Build the iOS game host against that SDK, compile the renderer's own shaders, and bundle the iOS MoltenVK framework.
-3. On a supported desktop host, generate/compile the GTA V game library from the user's own Xbox 360 Disc 1, Disc 2 and TU27 data, and translate the game's shader cache for iOS.
-4. Package the app shell and locally generated game library/shaders. Game-derived files must stay outside this public repository.
+We do **not** plan to load the entire Los Santos world, every interior, every mission, all ambient scripts, every vehicle/NPC, or GTA Online for the first playable build.
 
-The upstream documentation states that the game-specific iOS library and shaders are built on a desktop host; iOS cannot perform those compile/translation stages itself. A shell-only build cannot render the GTA V world without the locally generated game library and game data.
+The first slice targets:
+- a limited, streamed GTA V area;
+- Franklin with a small set of movement animations;
+- one BMW M5 F90;
+- third-person camera and on-foot movement;
+- vehicle entry/exit, basic driving and collision;
+- a small active NPC population;
+- mobile touch controls and local saves;
+- mobile LOD, texture, memory and draw-distance budgets.
 
-See [the repository's native runtime status and hardware limits](docs/REAL_IOS_RUNTIME_STATUS.md), [the repository's staged runtime build gates](docs/BUILDING_REAL_IOS_RUNTIME.md), [the pinned upstream iOS build notes](https://github.com/andrewnakas/gtav-recomp/blob/2a76184f563e4b604a88bea8eeed1334e77f3220/docs/IOS_PORT.md) and [the upstream project README](https://github.com/andrewnakas/gtav-recomp/tree/2a76184f563e4b604a88bea8eeed1334e77f3220).
+A smaller content footprint does not remove the need for compatible game code and runtime support for the original systems we retain. The game executable/build inputs needed by the static-recompilation pipeline are distinct from the map tiles, mission content and other assets that we can omit from the first slice.
 
-## Hardware compatibility warning
+See [LIGHTWEIGHT_PORT_SCOPE.md](docs/LIGHTWEIGHT_PORT_SCOPE.md) for the scope, verified asset inventory and engineering gates.
 
-The upstream iOS development baseline is A14 (iPhone 12) or newer. The iPhone 11 uses A13 and is below that documented baseline. An A13-targeted shell compile is experimental and does not establish runtime compatibility. See [native runtime status and hardware limits](docs/REAL_IOS_RUNTIME_STATUS.md) before attempting installation.
+## Assets already processed
 
-## Layout
-- `ios/` — native iOS prototype shell
-- `engine/` — portable C++ frame/input scaffolding
+- **Franklin:** a ped resource was produced with `.ydd`, `.yft`, `.ymt` and `.ytd` files. The animation pipeline produced a skinned GLB with four clips (idle, walk, run, sprint), 106 matched bone IDs, and a retargeted native-format YCD intermediate. Playback in the actual game runtime still needs validation.
+- **BMW M5 F90:** the GTA V YFT/YTD vehicle resources were converted to GLB. The high-detail conversion contains 274,642 triangles and 111 textures; it needs mobile LOD and texture optimization before A13 testing.
+
+These are valuable game resources, but GLB is currently an interchange/test format, not proof that the upstream RAGE renderer can load them directly. The original RAGE resource path must be preserved for native integration.
+
+The [iOS asset compatibility audit](.github/workflows/ios-asset-audit.yml) downloads the existing Franklin and BMW CI artifacts and validates their structure without committing the binary assets to the public repository.
+
+## Native runtime status
+
+The `RAGE iOS Runtime Shell (no game data)` workflow builds the upstream host/runtime components on a cloud macOS runner. A successful shell build is a real native build milestone, but it is **not** a playable GTA V app.
+
+The shell alone does not include:
+- the generated GTA V game library (`gtav_game.dylib`);
+- game-derived shader data;
+- the user's game data/resources;
+- an Apple-signed, installable IPA.
+
+The next gates are: finish the native shell build, establish the smallest legal game-code build path using cloud infrastructure, connect selected native resources, and reach the first frame from the actual game runtime. No local Mac/Windows machine is part of the intended user workflow, but the cloud pipeline still needs the required game-code inputs and Apple signing path.
+
+## Hardware warning
+
+The upstream documented baseline is A14 or newer. iPhone 11 uses A13 and is below that baseline. We will investigate A13 experimentally and optimize the first slice aggressively, but will not claim compatibility until it has been built, installed and tested on the actual device.
+
+## Repository layout
+
+- `ios/` — native iOS host/prototype code
+- `engine/` — portable frame/input scaffolding
 - `upstream/gtav-recomp/` — pinned upstream source submodule
-- `docs/` — architecture and integration notes
-- `tools/` — dependency preparation and source/build-input audit tooling
-- `webgpu/shaders/` — experimental WGSL rewrites of actual upstream native-renderer shaders; validated by Naga, not yet integrated into Plume
+- `browser/` — interface and asset-preview experiments; not the target runtime
+- `docs/` — architecture, asset audit and integration status
+- `tools/` — dependency preparation and asset/build-input audit tooling
+- `.github/workflows/` — cloud build and asset-validation workflows
 
-## Validation
-Initialize the source submodule and run:
+## Milestone reporting
 
-```sh
-git submodule update --init --recursive
-sh tools/verify_upstream_ios.sh
-```
+We report these separately:
+1. native host/runtime build;
+2. game-library build;
+3. game-data and native-resource loading;
+4. first frame from the actual GTA V runtime;
+5. playable on-foot slice;
+6. playable vehicle slice;
+7. tested device compatibility.
 
-A successful source audit is not a successful runtime build. The audit reports external/generated build inputs separately.
-
-## Browser interface milestone — GTA V loading composition
-
-The former generic text-logo boot card has been replaced by a layered `LOADINGSCREEN_STARTUP` renderer based on the publicly documented 1280×720 composition, independent image planes, perspective cameras and slide transitions reconstructed in [shadany7824/playgta5](https://github.com/shadany7824/playgta5). The implementation is original project code; it does not copy that repository's full page or redistribute Rockstar assets.
-
-**Original game textures are not included.** To display the actual artwork, supply the local files listed in [browser/assets/gtav-loading/README.md](browser/assets/gtav-loading/README.md). The proprietary asset directory is git-ignored and must remain out of public commits and Pages artifacts. When the files are absent, the loader shows an explicit missing-assets diagnostic instead of a fabricated GTA V logo. Current manifest includes the beach opening composition and two further layered screens.
-
-The loading percentage is illustrative interface progress, not a measurement of RAGE startup or game-data loading. The existing main menu, mode selection and settings remain available after the loading sequence. Story Mode and GTA Online remain unavailable until the real runtime and legally sourced game data are integrated.
-
-## Browser target — actual runtime only
-
-There is currently **no playable GTA V/ReXGlue runtime in a browser**. The former Three.js page was a standalone visual prototype and did not execute the upstream game runtime; it is not the browser target and must not be presented as one.
-
-The active browser-port investigation is tracked in [the RAGE/WebAssembly feasibility audit](docs/BROWSER_RAGE_WASM_FEASIBILITY.md). The [shader probe](tools/probe_native_shaders_wgsl.sh) confirms that the simple upstream vertex shader converts to WGSL, while the Vulkan compute-resolve and input-attachment shaders need explicit rewrites. Two first WGSL rewrites now pass Naga validation, but they are not yet integrated into Plume. None of this is a playable game build.
-
-The browser milestone will only be called complete when the actual upstream runtime executes in WebAssembly or a live native instance streams its real rendered frames to the browser. No generated game code, assets, shaders, or game libraries may be committed or published.
-
-## Clean-room rules
-1. Do not commit game archives, decrypted executables, keys, generated game C++, compiled game libraries, game shaders, or game data.
-2. Do not publish an IPA containing Rockstar-derived code or assets.
-3. Keep platform-specific host code separate from portable integration code.
-4. Profile memory, CPU, GPU and thermal load on real target hardware before claiming compatibility.
+A browser prototype, static asset preview, unsigned shell or successful CI compile must never be described as a playable GTA V port.
