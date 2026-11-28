@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   actions: read
 
 jobs:
@@ -38,6 +38,27 @@ jobs:
           test -s out/bmw-m5-f90/bmwm5f90.glb
           test -s out/bmw-m5-f90/bmwm5f90_hi.glb
           ls -lh out/bmw-m5-f90
+
+      - name: Bundle local Three.js viewer dependencies
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/bmw-viewer-deps --no-save three@0.180.0
+          mkdir -p browser/vendor/examples/jsm/loaders browser/vendor/examples/jsm/utils
+          cp /tmp/bmw-viewer-deps/node_modules/three/build/three.module.js browser/vendor/three.module.js
+          cp /tmp/bmw-viewer-deps/node_modules/three/examples/jsm/loaders/GLTFLoader.js browser/vendor/examples/jsm/loaders/GLTFLoader.js
+          cp /tmp/bmw-viewer-deps/node_modules/three/examples/jsm/utils/BufferGeometryUtils.js browser/vendor/examples/jsm/utils/BufferGeometryUtils.js
+          mkdir -p browser/assets/models/bmw-m5-f90
+          cp out/bmw-m5-f90/bmwm5f90_hi.glb browser/assets/models/bmw-m5-f90/bmwm5f90_hi.glb
+          cp out/bmw-m5-f90/bmwm5f90_hi-preview.png browser/assets/models/bmw-m5-f90/bmwm5f90_hi-preview.png
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add browser/vendor browser/assets/models/bmw-m5-f90
+          if git diff --cached --quiet; then
+            echo "Viewer assets are already up to date."
+          else
+            git commit -m "Add converted BMW M5 F90 model to browser asset viewer"
+            git push origin HEAD:minimal-runtime
+          fi
 
       - name: Publish converted model and previews
         uses: actions/upload-artifact@v4
