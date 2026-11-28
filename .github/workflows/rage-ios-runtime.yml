@@ -1,5 +1,4 @@
 name: RAGE iOS Runtime Shell (no game data)
-# Re-run after correcting the scene probe patch context and hunk counts.
 
 on:
   workflow_dispatch:
@@ -37,7 +36,7 @@ jobs:
       - name: Install build tools
         run: brew install cmake ninja
 
-      - name: Prepare pinned third-party sources and patches
+      - name: Prepare pinned third-party sources and upstream patches
         run: sh tools/prepare_upstream_ios_deps.sh
 
       - name: Validate local-only game library build helper
@@ -127,7 +126,6 @@ jobs:
           test -f "$MOLTENVK_BINARY" || { echo "ERROR: MoltenVK iOS binary is missing"; exit 1; }
           mkdir -p "$MVK_FRAMEWORK"
           cp "$MOLTENVK_BINARY" "$MVK_FRAMEWORK/MoltenVK"
-          # The upstream packaging script consumes the pinned SDK's license path.
           test -f "$UPSTREAM/rexglue-sdk/thirdparty/moltenvk/LICENSE"
           MOLTENVK_FW="$MVK_FRAMEWORK" \
           GTAV_SHELL="$UPSTREAM/build/ios-shell/gtav_fast.app/gtav_fast" \
@@ -149,7 +147,6 @@ jobs:
           test -s rage-ios-runtime/LICENSES/simde.txt
           plutil -lint "$APP/Info.plist"
 
-          # Audit every shipped Mach-O binary and its loader paths.
           {
             echo "=== Bundle files ==="
             find rage-ios-runtime -type f -maxdepth 5 -print | sort
