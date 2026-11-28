@@ -3,12 +3,12 @@
 Audit date: 2026-11-28  
 Branch: `minimal-runtime`
 
-This document records the inspection of the two user-supplied ZIP archives. The archives and converted character asset are intentionally **not committed**: they contain third-party GTA V mod assets. Keep the original downloads local and use them only where the relevant asset permissions allow.
+This document records inspection of the user-supplied ZIP archives. The archives and converted character asset are intentionally **not committed**: they contain third-party GTA V mod assets. Keep original downloads local and use them only where the relevant asset permissions allow.
 
 ## 1. Franklin character archive
 
 Archive: `PC _ Computer - Grand Theft Auto 5 - Characters - Franklin Clinton.zip`  
-ZIP integrity: passed (`ZipFile.testzip()` returned no damaged member).
+ZIP integrity: passed.
 
 Contents:
 - `Franklin Clinton.obj` — 2,758,394 bytes
@@ -24,13 +24,8 @@ OBJ inspection:
 - Nine material assignments
 
 Texture dimensions:
-- `feet_diff_000_a_uni.png`: 512×512
-- `hair_diff_000_a_uni.png`: 512×512
-- `hand_diff_000_a_uni.png`: 1024×1024
-- `head_diff_000_a_bla.png`: 1024×1024
-- `lowr_diff_000_a_bla.png`: 1024×1024
-- `teef_diff_000_a_uni.png`: 512×512
-- `uppr_diff_000_a_uni.png`: 1024×1024
+- feet, hair and teeth: 512×512
+- hand, head, lower-body and upper-body: 1024×1024
 
 ### Static GLB conversion
 
@@ -40,8 +35,8 @@ A local conversion was completed from the supplied OBJ/MTL/PNG set:
 - Nine mesh/material submeshes
 - 30,367 triangles total
 - UV coordinates retained
-- PNG base-colour textures embedded in the GLB
-- Bounds: approximately 1.83 units high in the source coordinate system
+- PNG base-colour textures embedded
+- Approximately 1.83 units high in the source coordinate system
 
 This is a static-mesh intermediate only. It has not been loaded by the native RAGE/Plume renderer, and it has no skinning or animation.
 
@@ -54,7 +49,9 @@ Therefore this archive is sufficient for a static character mesh conversion, but
 ## 2. Niko walk-style archive
 
 Archive: `265fb3-Niko Walk Style Addon v1.0.zip`  
-ZIP integrity: passed.
+ZIP size: 2,164,568 bytes  
+SHA-256: `0c0edccfb8ba4d44ece41d852af2b1ecb10aaa15a3583593c71b4414690856bc`  
+ZIP integrity: passed (`testzip()` returned no damaged member).
 
 Relevant files:
 - `move_m@generic_niko.ycd` — 497,958 bytes
@@ -72,6 +69,8 @@ The included author instructions explicitly name these assignments:
 
 The author describes `move_m@generic_niko` as Niko run/walk stops and `MOVE_M@WFIRE@NIKOWALK` as Niko walk, idle, run and sprint animations. This is the mod author's description; the clips have not yet been decoded or played in our runtime.
 
+The standalone XML describes the clip-set fallback from `move_m@wfire@nikowalk` to `move_m@generic_niko`, plus streaming metadata. It is configuration metadata, not decoded animation tracks.
+
 ## 3. What is and is not proven
 
 | Item | Audit result |
@@ -79,7 +78,7 @@ The author describes `move_m@generic_niko` as Niko run/walk stops and `MOVE_M@WF
 | ZIP integrity | Passed for both archives |
 | Franklin static mesh data | Present |
 | Franklin static GLB conversion | Completed locally; not in repo |
-| Franklin material file and textures | Present and embedded in GLB |
+| Franklin material file and textures | Present |
 | Franklin skeleton / skin weights | Not present in supplied OBJ |
 | Niko YCD animation resources | Present |
 | Niko clip-set configuration | Present |
@@ -91,7 +90,7 @@ The author describes `move_m@generic_niko` as Niko run/walk stops and `MOVE_M@WF
 
 1. Obtain a Franklin-compatible GTA V ped skeleton resource (normally the relevant YFT/YDD/YMT family, or a legally usable exported rig) and verify its bone hierarchy.
 2. Decode the supplied YCD resources and enumerate clip names, frame counts, track bone IDs and timing. CodeWalker has a YCD resource reader and XML export path.
-3. Compare the decoded track bone IDs against the Franklin skeleton. Do not assume Niko's animation set is automatically compatible merely because both are GTA V peds.
+3. Compare decoded track bone IDs against the Franklin skeleton. Do not assume Niko's animation set is automatically compatible merely because both are GTA V peds.
 4. If the rigs differ, retarget the animation tracks or map them through a compatible GTA V ped skeleton.
 5. Convert the Franklin mesh into the runtime's supported skinned-mesh representation, including vertex weights, inverse bind matrices, materials and textures.
 6. Add a native animation sampling/skinning path to the RAGE/Plume runtime and verify it on device.
