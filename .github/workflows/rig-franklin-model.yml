@@ -39,7 +39,11 @@ jobs:
           esac
           mkdir -p work/input work/unpacked work/output
           mkdir -p /tmp/franklin-transfer
-          npx --yes swish-dl "$ARCHIVE_URL" --output /tmp/franklin-transfer
+          git clone --depth 1 https://github.com/tekru-labs/swish-dl.git /tmp/swish-dl
+          cd /tmp/swish-dl
+          npm install --omit=dev
+          node index.js "$ARCHIVE_URL" --output /tmp/franklin-transfer
+          cd "$GITHUB_WORKSPACE"
           python3 - <<'PY'
           import pathlib, zipfile
           archives = list(pathlib.Path("/tmp/franklin-transfer").rglob("*.zip"))
