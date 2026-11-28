@@ -53,7 +53,7 @@ def inspect(path: Path) -> dict:
             value = names_blob[offset:end].decode("utf-8")
         except UnicodeDecodeError as e:
             raise RpfError(f"invalid UTF-8 name at offset {offset}") from e
-        if (not value and not allow_empty) or "/" in value or "\\\\" in value or value in (".", ".."):
+        if (not value and not allow_empty) or "/" in value or chr(92) in value or value in (".", ".."):
             raise RpfError(f"unsafe entry name: {value!r}")
         return value
 
