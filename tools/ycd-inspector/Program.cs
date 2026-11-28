@@ -1,6 +1,44 @@
 using System.Text.Json;
 using CodeWalker.GameFiles;
 
+if (args.Length > 0 && args[0] == "--pack-ycd")
+{
+    if (args.Length != 3)
+    {
+        Console.Error.WriteLine("Usage: YcdInspector --pack-ycd <input.ycd.xml> <output.ycd>");
+        return 2;
+    }
+
+    var xmlInput = Path.GetFullPath(args[1]);
+    var ycdOutput = Path.GetFullPath(args[2]);
+    var xmlText = File.ReadAllText(xmlInput);
+    var packedYcd = XmlYcd.GetYcd(xmlText);
+    if (packedYcd?.ClipDictionary == null)
+        throw new InvalidDataException("CodeWalker XML parser did not produce a ClipDictionary.");
+
+    var resourceBytes = packedYcd.Save();
+    if (resourceBytes.Length < 16 || System.Text.Encoding.ASCII.GetString(resourceBytes, 0, 4) != "RSC7")
+        throw new InvalidDataException("CodeWalker did not produce a valid RSC7 YCD resource.");
+
+    var roundTrip = RpfFile.GetResourceFile<YcdFile>(resourceBytes);
+    if (roundTrip?.ClipDictionary == null)
+        throw new InvalidDataException("Packed YCD failed CodeWalker round-trip validation.");
+
+    Directory.CreateDirectory(Path.GetDirectoryName(ycdOutput)!);
+    File.WriteAllBytes(ycdOutput, resourceBytes);
+    Console.WriteLine(JsonSerializer.Serialize(new
+    {
+        input = Path.GetFileName(xmlInput),
+        output = ycdOutput,
+        bytes = resourceBytes.Length,
+        rscMagic = "RSC7",
+        clips = roundTrip.ClipMapEntries?.Length ?? 0,
+        animations = roundTrip.AnimMapEntries?.Length ?? 0,
+        roundTripValidated = true
+    }));
+    return 0;
+}
+
 if (args.Length is < 2 or > 3)
 {
     Console.Error.WriteLine("Usage: YcdInspector <input.ycd> <output-directory> [ped-skeleton-template.json]");
