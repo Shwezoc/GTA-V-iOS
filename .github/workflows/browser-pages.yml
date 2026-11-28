@@ -8,6 +8,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: github-pages
   cancel-in-progress: false
@@ -17,6 +18,25 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Download Franklin GLB from validated rigging run
+        uses: actions/download-artifact@v4
+        with:
+          name: franklin-niko-retargeted-animated-glb
+          path: /tmp/franklin-asset
+          repository: ${{ github.repository }}
+          run-id: 46113312010
+          github-token: ${{ github.token }}
+
+      - name: Stage Franklin model for browser scene
+        run: |
+          set -eu
+          mkdir -p browser/assets/models/franklin
+          model="$(find /tmp/franklin-asset -type f -name '*.glb' -print -quit)"
+          test -n "$model"
+          cp "$model" browser/assets/models/franklin/franklin_niko_animated.glb
+          test -s browser/assets/models/franklin/franklin_niko_animated.glb
+          ls -lh browser/assets/models/franklin/franklin_niko_animated.glb
+
       - name: Validate browser build and BMW RAGE model viewer
         run: |
           set -eu
@@ -29,6 +49,10 @@ jobs:
           test -s browser/bmw-viewer.html
           test -s browser/bmw-viewer.js
           test -s browser/bmw-viewer.css
+          test -s browser/drive-test.html
+          test -s browser/drive-test.js
+          test -s browser/drive-test.css
+          test -s browser/assets/models/franklin/franklin_niko_animated.glb
           test -s browser/assets/gtav-loading/README.md
           test -s browser/assets/models/bmw-m5-f90/bmwm5f90_hi.glb
           test -s browser/assets/models/bmw-m5-f90/bmwm5f90_hi-preview.png
@@ -40,6 +64,7 @@ jobs:
           node --check browser/main.js
           node --check browser/menu.js
           node --input-type=module --check < browser/bmw-viewer.js
+          node --input-type=module --check < browser/drive-test.js
           touch browser/.nojekyll
           echo "Browser lab and offline BMW M5 F90 GLB viewer validated."
 
@@ -91,6 +116,19 @@ jobs:
           }
           await page.screenshot({ path: "bmw-viewer-smoke.png", fullPage: false });
           console.log("BMW M5 F90 GLB loaded and rendered in Chromium: " + JSON.stringify(diag));
+          const driveErrors = [];
+          const drivePage = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+          drivePage.on("pageerror", e => driveErrors.push(e.message));
+          drivePage.on("console", m => { if (m.type() === "error") driveErrors.push(m.text()); });
+          await drivePage.goto("http://127.0.0.1:4173/drive-test.html", { waitUntil: "domcontentloaded" });
+          await drivePage.waitForFunction(() => document.querySelector("#load-state")?.textContent === "СЦЕНА ГОТОВА", null, { timeout: 60000 });
+          const driveState = await drivePage.locator("#load-state").textContent();
+          if (driveErrors.length || driveState !== "СЦЕНА ГОТОВА") {
+            throw new Error("Franklin + BMW drive scene failed: " + JSON.stringify({driveState, driveErrors}));
+          }
+          await drivePage.screenshot({ path: "franklin-bmw-drive-test.png", fullPage: false });
+          console.log("Franklin GLB and BMW GLB both loaded in the interactive scene.");
+          await drivePage.close();
           await browser.close();
           NODE
 
