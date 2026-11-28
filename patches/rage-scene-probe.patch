@@ -47,8 +47,12 @@ index 0000000..0000000 100644
 +REXCVAR_DEFINE_BOOL(gtav_native_scene_probe, true, "GTAV",
 +                    "Native renderer: draw a depth-tested 3D Plume cube over the presented frame (diagnostic)");
  namespace plume {
-@@ -1987,1 +1987,36 @@
--  // FPS counter (PSDigits) over the bound framebuffer, top-left corner at (x, y).
+@@ -1982,6 +1982,41 @@
+     uint32_t push[2] = {descriptor, blit_sampler};
+     list->setGraphicsPushConstants(0, push, 0, sizeof(push));
+     list->drawInstanced(3, 1, 0, 0);
+   }
+ 
 +  // Depth-tested 3D cube bring-up probe. Uses the existing Plume device and present command list.
 +  std::unique_ptr<RenderShader> scene_probe_vs, scene_probe_ps;
 +  std::unique_ptr<RenderPipeline> scene_probe_pipeline;
@@ -84,7 +88,7 @@ index 0000000..0000000 100644
 +    list->drawInstanced(36, 1, 0, 0);
 +  }
 +
-+  // FPS counter (PSDigits) over the bound framebuffer, top-left corner at (x, y).
+   // FPS counter (PSDigits) over the bound framebuffer, top-left corner at (x, y).
 @@ -6107,4 +6107,8 @@ void Backend::Blit(RenderCommandList* list, uint32_t descriptor, RenderFormat target_format) {
    impl_->BlitTo(list, descriptor, target_format);
  }
@@ -124,9 +128,13 @@ index 0000000..0000000 100644
 +      scene_probe_depth_.push_back(std::move(depth));
        framebuffers_.push_back(device_->createFramebuffer(desc));
      }
-@@ -1590,1 +1590,2 @@
+@@ -1588,4 +1588,5 @@
+   plume::RenderCommandList* list_ = nullptr;  // the slot being recorded
+   std::vector<std::unique_ptr<plume::RenderCommandSemaphore>> release_;
    std::vector<std::unique_ptr<plume::RenderFramebuffer>> framebuffers_;
 +  std::vector<std::unique_ptr<plume::RenderTexture>> scene_probe_depth_;
+ 
+   Backend backend_;
 
 diff --git a/gtav/src/native/shaders/native_scene_probe.hlsl b/gtav/src/native/shaders/native_scene_probe.hlsl
 new file mode 100644
