@@ -44,7 +44,7 @@ jobs:
           mkdir -p "$TEMP_DIR/franklin-transfer"
           if [[ "$ARCHIVE_URL" == *"drive.google.com"* ]]; then
             python -m pip install --user --disable-pip-version-check gdown
-            FILE_ID="$(python3 -c 'import re,sys; u=sys.argv[1]; m=re.search(r"/file/d/([A-Za-z0-9_-]+)", u) or re.search(r"[?&]id=([A-Za-z0-9_-]+)", u); print(m.group(1) if m else u)' "$ARCHIVE_URL")"
+            FILE_ID="$(python -c 'import re,sys; u=sys.argv[1]; m=re.search(r"/file/d/([A-Za-z0-9_-]+)", u) or re.search(r"[?&]id=([A-Za-z0-9_-]+)", u); print(m.group(1) if m else u)' "$ARCHIVE_URL")"
             python -m gdown "$FILE_ID" -O "$TEMP_DIR/franklin-transfer/franklin-package.zip"
           else
             curl --fail --location --retry 3 --retry-all-errors \
@@ -62,7 +62,7 @@ jobs:
           print("FRANKLIN_ARCHIVE_DOWNLOADED", archive.stat().st_size, "bytes")
           PY
           cp "$TEMP_DIR/franklin-transfer/franklin-package.zip" work/unpacked/franklin-package.zip
-          python3 - <<'PY'
+          python - <<'PY'
           import pathlib, zipfile
           archive = pathlib.Path("work/unpacked/franklin-package.zip")
           root = pathlib.Path("work/unpacked").resolve()
@@ -134,14 +134,17 @@ jobs:
           TEMP_DIR="$(cygpath -u "$RUNNER_TEMP")"
           WORKSPACE="$(cygpath -u "$GITHUB_WORKSPACE")"
           ADDONS="$TEMP_DIR/blender/5.2/scripts/addons"
+          ADDONS_WIN="$(cygpath -m "$ADDONS")"
+          WORKSPACE_WIN="$(cygpath -m "$WORKSPACE")"
+          TEMP_WIN="$(cygpath -m "$TEMP_DIR")"
           export CI=true
           export PYTHONPATH="$ADDONS${PYTHONPATH:+:$PYTHONPATH}"
           "$TEMP_DIR/blender/blender.exe" --background \
-            --python-expr "import sys,bpy; sys.path.insert(0, '$ADDONS'); bpy.utils.refresh_script_paths(); import Sollumz; bpy.ops.preferences.addon_enable(module='Sollumz'); bpy.ops.preferences.addon_enable(module='muto_ped_rig'); bpy.ops.wm.save_userpref(); print('ADDONS_ENABLED', 'Sollumz', 'muto_ped_rig')" \
-            --python "$WORKSPACE/tools/rig_franklin.py" -- \
-            "src=$WORKSPACE/work/input/franklin.obj" \
-            "out=$WORKSPACE/work/output" \
-            "worker=$RUNNER_TEMP/blender/5.2/scripts/addons/muto_ped_rig/bl/batch_worker.py" \
+            --python-expr "import sys,bpy; sys.path.insert(0, '$ADDONS_WIN'); bpy.utils.refresh_script_paths(); import Sollumz; bpy.ops.preferences.addon_enable(module='Sollumz'); bpy.ops.preferences.addon_enable(module='muto_ped_rig'); bpy.ops.wm.save_userpref(); print('ADDONS_ENABLED', 'Sollumz', 'muto_ped_rig')" \
+            --python "$WORKSPACE_WIN/tools/rig_franklin.py" -- \
+            "src=$WORKSPACE_WIN/work/input/franklin.obj" \
+            "out=$WORKSPACE_WIN/work/output" \
+            "worker=$TEMP_WIN/blender/5.2/scripts/addons/muto_ped_rig/bl/batch_worker.py" \
             "ped=franklin" \
             "height=$MODEL_HEIGHT"
 
