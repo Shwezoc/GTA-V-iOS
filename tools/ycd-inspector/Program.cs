@@ -1,6 +1,116 @@
 using System.Text.Json;
 using CodeWalker.GameFiles;
 
+static RpfDirectoryEntry EnsureDirectory(RpfDirectoryEntry parent, string name)
+{
+    var existing = parent.Directories.FirstOrDefault(entry =>
+        string.Equals(entry.Name, name, StringComparison.OrdinalIgnoreCase));
+    return existing ?? RpfFile.CreateDirectory(parent, name);
+}
+
+static void AddFile(RpfDirectoryEntry parent, string sourcePath, string targetName)
+{
+    if (!File.Exists(sourcePath))
+        throw new FileNotFoundException("Required source resource is missing.", sourcePath);
+    RpfFile.CreateFile(parent, targetName, File.ReadAllBytes(sourcePath), overwrite: false);
+}
+
+static IEnumerable<RpfFile> WalkArchives(RpfFile archive)
+{
+    yield return archive;
+    if (archive.Children == null)
+        yield break;
+    foreach (var child in archive.Children)
+        foreach (var nested in WalkArchives(child))
+            yield return nested;
+}
+
+if (args.Length > 0 && args[0] == "--pack-bmw-dlc")
+{
+    if (args.Length != 3)
+    {
+        Console.Error.WriteLine("Usage: YcdInspector --pack-bmw-dlc <extracted-bmw-assets-dir> <output-dlc.rpf>");
+        return 2;
+    }
+
+    var source = Path.GetFullPath(args[1]);
+    var output = Path.GetFullPath(args[2]);
+    var root = Path.Combine(source, "bmw-assets");
+    var metadata = Path.Combine(root, "common", "data");
+    var vehicleSource = Path.Combine(root, "x64", "levels", "gta5", "vehicles", "vehicles.rpf");
+    var modSource = Path.Combine(root, "x64", "bmwm5f90_mods.rpf");
+
+    Directory.CreateDirectory(Path.GetDirectoryName(output)!);
+    if (File.Exists(output))
+        File.Delete(output);
+
+    var dlc = RpfFile.CreateNew(Path.GetDirectoryName(output)!, Path.GetFileName(output), RpfEncryption.OPEN);
+    AddFile(dlc.Root, Path.Combine(root, "content.xml"), "content.xml");
+    AddFile(dlc.Root, Path.Combine(root, "setup2.xml"), "setup2.xml");
+
+    var common = EnsureDirectory(dlc.Root, "common");
+    var data = EnsureDirectory(common, "data");
+    foreach (var name in new[] { "handling.meta", "carvariations.meta", "carcols.meta", "dlctext.meta" })
+        AddFile(data, Path.Combine(metadata, name), name);
+
+    var dataLevels = EnsureDirectory(data, "levels");
+    var dataGta5 = EnsureDirectory(dataLevels, "gta5");
+    AddFile(dataGta5, Path.Combine(metadata, "levels", "gta5", "vehicles.meta"), "vehicles.meta");
+
+    var x64 = EnsureDirectory(dlc.Root, "x64");
+    var mods = RpfFile.CreateNew(x64, "bmwm5f90_mods.rpf", RpfEncryption.OPEN);
+    foreach (var file in Directory.GetFiles(modSource, "*.yft", SearchOption.TopDirectoryOnly).OrderBy(Path.GetFileName))
+        AddFile(mods.Root, file, Path.GetFileName(file));
+    if (mods.Root.Files.Count == 0)
+        throw new InvalidDataException("BMW mod-parts RPF would be empty.");
+
+    var x64Levels = EnsureDirectory(x64, "levels");
+    var gta5 = EnsureDirectory(x64Levels, "gta5");
+    var vehicles = EnsureDirectory(gta5, "vehicles");
+    var vehicleRpf = RpfFile.CreateNew(vehicles, "vehicles.rpf", RpfEncryption.OPEN);
+    foreach (var name in new[] { "bmwm5f90.yft", "bmwm5f90.ytd", "bmwm5f90_hi.yft" })
+        AddFile(vehicleRpf.Root, Path.Combine(vehicleSource, name), name);
+
+    var check = new RpfFile(output, Path.GetFileName(output));
+    check.ScanStructure(null, null);
+    if (!string.IsNullOrEmpty(check.LastError))
+        throw new InvalidDataException("Packed DLC RPF failed CodeWalker scan: " + check.LastError);
+
+    var archives = WalkArchives(check).ToArray();
+    var resources = archives
+        .SelectMany(archive => archive.AllEntries ?? new List<RpfEntry>())
+        .OfType<RpfResourceFileEntry>()
+        .Select(entry => entry.Name)
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    var requiredResources = new[] { "bmwm5f90.yft", "bmwm5f90.ytd", "bmwm5f90_hi.yft" };
+    var missingResources = requiredResources.Where(name => !resources.Contains(name)).ToArray();
+    if (missingResources.Length > 0)
+        throw new InvalidDataException("Packed DLC is missing native vehicle resources: " + string.Join(", ", missingResources));
+
+    var report = new
+    {
+        status = "pass",
+        output = Path.GetFileName(output),
+        bytes = new FileInfo(output).Length,
+        rpfVersion = "RPF7",
+        encryption = "OPEN",
+        archiveCount = archives.Length,
+        resourceCount = resources.Count,
+        requiredVehicleResources = requiredResources,
+        modPartCount = mods.Root.Files.Count,
+        nativeVehicleResourcesFound = requiredResources,
+        codeWalkerRoundTrip = true,
+        notes = new[]
+        {
+            "The DLC package was built from the supplied native RSC7 resources and vehicle metadata.",
+            "A successful RPF7 scan validates archive structure, not in-game DLC mounting or vehicle spawning.",
+            "The generated DLC binary is intentionally not uploaded as a public CI artifact."
+        }
+    };
+    Console.WriteLine(JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
+    return 0;
+}
+
 if (args.Length > 0 && args[0] == "--pack-ycd")
 {
     if (args.Length != 3)
