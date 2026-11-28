@@ -76,16 +76,13 @@ jobs:
           if ($archives.Count -ne 1) { throw "Expected exactly one ZIP archive, found $($archives.Count)" }
           Add-Type -AssemblyName System.IO.Compression.FileSystem
           $zip = [System.IO.Compression.ZipFile]::OpenRead($archives[0].FullName)
-          try {
-            $entries = $zip.Entries | Where-Object { $_.FullName -match '\.ycd$' }
-            if ($entries.Count -lt 1) { throw "No YCD files found in archive" }
-            $entries | ForEach-Object { Write-Host "$($_.FullName) ($($_.Length) bytes)" }
-            $nikoSrc = "$env:RUNNER_TEMP/niko-src"
-            New-Item -ItemType Directory -Force -Path $nikoSrc | Out-Null
-            $zip.Dispose()
-  $zip = $null
-  [System.IO.Compression.ZipFile]::ExtractToDirectory($archives[0].FullName, $nikoSrc)
-          } finally { if ($null -ne $zip) { $zip.Dispose() } }
+          $entries = @($zip.Entries | Where-Object { $_.FullName -match '\\.ycd$' })
+          $zip.Dispose()
+          if ($entries.Count -lt 1) { throw "No YCD files found in archive" }
+          $entries | ForEach-Object { Write-Host "$($_.FullName) ($($_.Length) bytes)" }
+          $nikoSrc = "$env:RUNNER_TEMP/niko-src"
+          New-Item -ItemType Directory -Force -Path $nikoSrc | Out-Null
+          Expand-Archive -LiteralPath $archives[0].FullName -DestinationPath $nikoSrc -Force
       - name: Decode all supplied YCD resources
         shell: pwsh
         run: |
