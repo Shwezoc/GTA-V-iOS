@@ -1,6 +1,7 @@
 use anyhow::{bail, Context, Result};
 use rage_formats::{parse_yft, parse_ytd};
 use rage_render::{export_glb, render_parts, Facing, GlbOptions, RenderOptions, RenderPart, TextureSet, View};
+use rage_render::image::{Rgba, RgbaImage};
 use std::{env, fs, path::{Path, PathBuf}};
 
 fn convert(yft_path: &Path, ytd_path: &Path, output_dir: &Path) -> Result<()> {
@@ -18,6 +19,29 @@ fn convert(yft_path: &Path, ytd_path: &Path, output_dir: &Path) -> Result<()> {
     let ytd_textures = parse_ytd(&ytd_bytes).with_context(|| format!("parse GTA V texture dictionary {}", ytd_path.display()))?;
     let mut textures = TextureSet::new();
     let texture_failures = textures.push_layer(&ytd_textures);
+
+    // GTA vehicles can reference shared engine dictionaries which are not
+    // embedded in the add-on vehicle's YTD. Supply conservative semantic
+    // fallbacks so glass and specular channels do not export as opaque white.
+    let solid = |rgba: [u8; 4]| RgbaImage::from_pixel(4, 4, Rgba(rgba));
+    textures.override_texture(
+        "vehicle_generic_glasswindows2",
+        solid([42, 57, 68, 105]),
+    );
+    textures.override_texture(
+        "prozrachniy",
+        solid([35, 48, 58, 90]),
+    );
+    textures.override_texture(
+        "vehicle_generic_smallspecmap",
+        solid([175, 175, 175, 210]),
+    );
+    // Runtime dashboard render targets are unavailable outside GTA; use a
+    // dark neutral placeholder rather than a missing/white surface.
+    textures.override_texture(
+        "script_rt_dials_gen_taxi",
+        solid([24, 27, 30, 255]),
+    );
 
     let paint = Some([115, 120, 128]);
     let glb_options = GlbOptions {
@@ -51,7 +75,7 @@ fn convert(yft_path: &Path, ytd_path: &Path, output_dir: &Path) -> Result<()> {
 
     let report_path = output_dir.join(format!("{stem}-report.txt"));
     let report = format!(
-        "Source YFT: {}\nSource YTD: {}\nFragment name: {}\nParts: {}\nYTD textures: {}\nUndecodable textures: {}\nGLB bytes: {}\nGLB triangles: {}\nGLB geometries: {}\nGLB missing textures: {:?}\nPreview triangles: {}\nPreview missing textures: {:?}\n",
+        "Source YFT: {}\nSource YTD: {}\nFragment name: {}\nParts: {}\nYTD textures: {}\nUndecodable textures: {}\nGLB bytes: {}\nGLB triangles: {}\nGLB geometries: {}\nGLB missing textures: {:?}\nPreview triangles: {}\nPreview missing textures: {:?}\nFallback textures: vehicle_generic_glasswindows2, prozrachniy, vehicle_generic_smallspecmap, script_rt_dials_gen_taxi\n",
         yft_path.display(), ytd_path.display(), fragment.name, parts.len(), ytd_textures.len(),
         texture_failures.len(), glb.len(), glb_report.triangles, glb_report.geometries,
         glb_report.missing_textures, preview_report.triangles, preview_report.missing_textures
