@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       archive_url:
-        description: Direct HTTPS URL to the Niko Walk Style ZIP archive
+        description: Google Drive share link or SwissTransfer URL to the Niko Walk Style ZIP archive
         required: true
         type: string
   push:
@@ -54,13 +54,26 @@ jobs:
           $env:ARCHIVE_URL = $env:ARCHIVE_URL.Trim()
           if ([string]::IsNullOrWhiteSpace($env:ARCHIVE_URL)) { throw "workflow_dispatch requires archive_url" }
           if (-not $env:ARCHIVE_URL.StartsWith("https://")) { throw "Only HTTPS archive URLs are accepted" }
-          git clone --depth 1 https://github.com/tekru-labs/swish-dl.git "$env:RUNNER_TEMP/swish-dl"
-          Push-Location "$env:RUNNER_TEMP/swish-dl"
-          npm install --omit=dev
-          node index.js $env:ARCHIVE_URL --output "$env:RUNNER_TEMP/niko-download"
-          Pop-Location
-          $archives = @(Get-ChildItem "$env:RUNNER_TEMP/niko-download" -Recurse -File -Filter *.zip)
-          if ($archives.Count -ne 1) { throw "Expected exactly one ZIP from SwissTransfer, found $($archives.Count)" }
+          $downloadDir = "$env:RUNNER_TEMP/niko-download"
+          New-Item -ItemType Directory -Force -Path $downloadDir | Out-Null
+          $zipPath = Join-Path $downloadDir "niko-walk-style.zip"
+          if ($env:ARCHIVE_URL -match 'drive\.google\.com') {
+            $fileId = $null
+            if ($env:ARCHIVE_URL -match '/file/d/([A-Za-z0-9_-]+)') { $fileId = $Matches[1] }
+            elseif ($env:ARCHIVE_URL -match '[?&]id=([A-Za-z0-9_-]+)') { $fileId = $Matches[1] }
+            if ([string]::IsNullOrWhiteSpace($fileId)) { throw "Could not extract Google Drive file ID from URL" }
+            python -m pip install --disable-pip-version-check gdown==5.2.0
+            python -m gdown $fileId -O $zipPath
+            if ($LASTEXITCODE -ne 0) { throw "Google Drive download failed; check that link access is set to Anyone with the link" }
+          } else {
+            git clone --depth 1 https://github.com/tekru-labs/swish-dl.git "$env:RUNNER_TEMP/swish-dl"
+            Push-Location "$env:RUNNER_TEMP/swish-dl"
+            npm install --omit=dev
+            node index.js $env:ARCHIVE_URL --output $downloadDir
+            Pop-Location
+          }
+          $archives = @(Get-ChildItem $downloadDir -Recurse -File -Filter *.zip)
+          if ($archives.Count -ne 1) { throw "Expected exactly one ZIP archive, found $($archives.Count)" }
           Add-Type -AssemblyName System.IO.Compression.FileSystem
           $zip = [System.IO.Compression.ZipFile]::OpenRead($archives[0].FullName)
           try {
