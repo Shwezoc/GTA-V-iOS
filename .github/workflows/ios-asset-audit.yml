@@ -15,9 +15,14 @@ on:
         default: "46113312010"
         type: string
       bmw_run_id:
-        description: GitHub Actions run ID containing the BMW M5 F90 asset artifact
+        description: GitHub Actions run ID containing the BMW M5 F90 GLB artifact
         required: true
         default: "46112567911"
+        type: string
+      bmw_native_run_id:
+        description: GitHub Actions run ID containing the native BMW RAGE resources
+        required: true
+        default: "46094904611"
         type: string
 
 permissions:
@@ -32,7 +37,7 @@ jobs:
       - name: Checkout project
         uses: actions/checkout@v4
 
-      - name: Download Franklin model and retargeted animations
+      - name: Download Franklin native resources and retargeted animations
         uses: actions/download-artifact@v4
         with:
           name: franklin-niko-retargeted-animated-glb
@@ -41,7 +46,7 @@ jobs:
           repository: ${{ github.repository }}
           path: work/assets/franklin
 
-      - name: Download BMW M5 F90 model
+      - name: Download BMW M5 F90 GLB and previews
         uses: actions/download-artifact@v4
         with:
           name: BMW-M5-F90-GLB-and-previews
@@ -50,12 +55,22 @@ jobs:
           repository: ${{ github.repository }}
           path: work/assets/bmw
 
-      - name: Validate GLB files, skinning, animation and texture reports
+      - name: Download original-format BMW RAGE resources and vehicle metadata
+        uses: actions/download-artifact@v4
+        with:
+          name: BMW-M5-F90-extracted-RAGE-assets
+          run-id: ${{ inputs.bmw_native_run_id || '46094904611' }}
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          path: work/assets/bmw-native
+
+      - name: Validate RSC7 resources, GLB skinning, animations and textures
         run: |
           set -euo pipefail
           python3 tools/audit_ios_assets.py \
             --franklin-dir work/assets/franklin \
             --bmw-dir work/assets/bmw \
+            --bmw-native-dir work/assets/bmw-native \
             --output work/ios-asset-audit.json
 
       - name: Upload asset compatibility report
