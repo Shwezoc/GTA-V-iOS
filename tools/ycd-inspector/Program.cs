@@ -39,14 +39,14 @@ var animations = (ycd.AnimMapEntries ?? Array.Empty<AnimationMapEntry>())
     .Select(entry =>
     {
         var animation = entry.Animation!;
-        var tracks = animation.BoneIds?.data_items ?? new List<AnimationBoneId>();
+        var tracks = animation.BoneIds?.data_items ?? Array.Empty<AnimationBoneId>();
         return new
         {
             hash = entry.Hash.ToString(),
             frames = animation.Frames,
             durationSeconds = animation.Duration,
             sequenceFrameLimit = animation.SequenceFrameLimit,
-            boneTrackCount = tracks.Count,
+            boneTrackCount = tracks.Length,
             boneIds = tracks.Select(track => track.BoneId).Distinct().OrderBy(id => id).ToArray(),
             trackTypes = tracks.Select(track => track.Track).Distinct().OrderBy(id => id).ToArray()
         };
