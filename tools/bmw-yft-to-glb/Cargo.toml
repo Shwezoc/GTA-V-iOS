@@ -7,4 +7,4 @@ publish = false
 [dependencies]
 anyhow = "1.0"
 rage-formats = "0.5.2"
-rage-render = "0.7.1"
+rage-render = { git = "https://github.com/VIRUXE/rage-render", branch = "main" }
