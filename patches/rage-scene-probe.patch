@@ -100,7 +100,7 @@ index 0000000..0000000 100644
      } else {
        list_->clearColor(0, plume::RenderColor(0.12f, 0.0f, 0.12f, 1.0f));
      }
--    // FPS counter (PSDigits) over the bound framebuffer, top-left corner at (x, y).
+-    // Frames presented over the last second, drawn in the top-left corner (--gtav_native_fps).
 +    // Depth is cleared only for the custom scene; the guest game's color blit remains untouched.
 +    if (backend_ok_ && image < scene_probe_depth_.size() && scene_probe_depth_[image]) {
 +      list_->barriers(plume::RenderBarrierStage::GRAPHICS,
