@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       model_url:
-        description: Direct HTTPS download URL for Franklin GLB/GLTF/FBX/OBJ
+        description: Direct HTTPS download URL for Franklin GLB/FBX/OBJ
         required: true
         type: string
       model_format:
