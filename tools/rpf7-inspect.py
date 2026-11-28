@@ -22,10 +22,6 @@ class RpfError(ValueError):
     pass
 
 
-def u32(data: bytes, off: int) -> int:
-    return struct.unpack_from("<I", data, off)[0]
-
-
 def inspect(path: Path) -> dict:
     size = path.stat().st_size
     with path.open("rb") as f:
@@ -47,17 +43,17 @@ def inspect(path: Path) -> dict:
         if len(entries_blob) != toc_len or len(names_blob) != names_len:
             raise RpfError("truncated TOC or names table")
 
-    def name_at(offset: int) -> str:
+    def name_at(offset: int, allow_empty: bool = False) -> str:
         if offset >= len(names_blob):
             raise RpfError(f"name offset out of range: {offset}")
-        end = names_blob.find(b"\0", offset)
+        end = names_blob.find(b"\\0", offset)
         if end < 0:
             raise RpfError(f"unterminated name at offset {offset}")
         try:
             value = names_blob[offset:end].decode("utf-8")
         except UnicodeDecodeError as e:
             raise RpfError(f"invalid UTF-8 name at offset {offset}") from e
-        if not value or "/" in value or "\\" in value or value in (".", ".."):
+        if (not value and not allow_empty) or "/" in value or "\\\\" in value or value in (".", ".."):
             raise RpfError(f"unsafe entry name: {value!r}")
         return value
 
@@ -66,7 +62,7 @@ def inspect(path: Path) -> dict:
         raw = entries_blob[i * 16:(i + 1) * 16]
         a, b, c, d = struct.unpack("<4I", raw)
         if b == 0x7FFFFF00:
-            records.append({"kind": "dir", "name": name_at(a), "first": c, "count": d})
+            records.append({"kind": "dir", "name": name_at(a, allow_empty=(i == 0)), "first": c, "count": d})
         elif (b & 0x80000000) == 0:
             packed = a | (b << 32)
             name_off = packed & 0xFFFF
