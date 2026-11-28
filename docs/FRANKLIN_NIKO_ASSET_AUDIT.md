@@ -3,7 +3,7 @@
 Audit date: 2026-11-28  
 Branch: `minimal-runtime`
 
-This document records the inspection of the two user-supplied ZIP archives. The archives themselves are intentionally **not committed**: they contain third-party GTA V mod assets. Keep the original downloads local and use them only where the relevant asset permissions allow.
+This document records the inspection of the two user-supplied ZIP archives. The archives and converted character asset are intentionally **not committed**: they contain third-party GTA V mod assets. Keep the original downloads local and use them only where the relevant asset permissions allow.
 
 ## 1. Franklin character archive
 
@@ -31,6 +31,19 @@ Texture dimensions:
 - `lowr_diff_000_a_bla.png`: 1024×1024
 - `teef_diff_000_a_uni.png`: 512×512
 - `uppr_diff_000_a_uni.png`: 1024×1024
+
+### Static GLB conversion
+
+A local conversion was completed from the supplied OBJ/MTL/PNG set:
+- Output: `franklin_clinton_static.glb`
+- Size: 7,125,108 bytes
+- Nine mesh/material submeshes
+- 30,367 triangles total
+- UV coordinates retained
+- PNG base-colour textures embedded in the GLB
+- Bounds: approximately 1.83 units high in the source coordinate system
+
+This is a static-mesh intermediate only. It has not been loaded by the native RAGE/Plume renderer, and it has no skinning or animation.
 
 ### Character-rig finding
 
@@ -65,7 +78,8 @@ The author describes `move_m@generic_niko` as Niko run/walk stops and `MOVE_M@WF
 |---|---|
 | ZIP integrity | Passed for both archives |
 | Franklin static mesh data | Present |
-| Franklin material file and textures | Present |
+| Franklin static GLB conversion | Completed locally; not in repo |
+| Franklin material file and textures | Present and embedded in GLB |
 | Franklin skeleton / skin weights | Not present in supplied OBJ |
 | Niko YCD animation resources | Present |
 | Niko clip-set configuration | Present |
