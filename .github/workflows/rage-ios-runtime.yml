@@ -1,4 +1,5 @@
 name: RAGE iOS Runtime Shell (no game data)
+# Re-run after repairing the native scene probe patch parser issue.
 
 on:
   workflow_dispatch:
