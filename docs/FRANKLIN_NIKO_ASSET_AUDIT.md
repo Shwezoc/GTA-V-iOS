@@ -95,7 +95,13 @@ The standalone XML describes the clip-set fallback from `move_m@wfire@nikowalk` 
 5. Convert the Franklin mesh into the runtime's supported skinned-mesh representation, including vertex weights, inverse bind matrices, materials and textures.
 6. Add a native animation sampling/skinning path to the RAGE/Plume runtime and verify it on device.
 
-## 5. References
+## 5. Automated YCD decoder
+
+A CodeWalker-based inspector has been added under `tools/ycd-inspector/`. It calls CodeWalker's `RpfFile.GetResourceFile<YcdFile>()` path so the RSC7 header and compressed resource payload are handled by the upstream parser, then writes a CodeWalker XML export and a JSON report containing clip names, animation frame counts, durations, bone IDs and track types.
+
+The GitHub Actions workflow is `.github/workflows/decode-niko-ycd.yml`. A push to `minimal-runtime` builds the inspector; a manual run can decode an archive supplied through a direct HTTPS ZIP URL and upload the XML/JSON output as an artifact. The inspector and workflow have been committed, but a successful CI build and a decoded output artifact are **not yet verified**. The chat-uploaded ZIP is not directly addressable by the GitHub runner, so the manual decode still needs a direct HTTPS download URL.
+
+## 6. References
 
 - CodeWalker YCD reader: https://github.com/dexyfex/CodeWalker/blob/master/CodeWalker.Core/GameFiles/FileTypes/YcdFile.cs
 - CodeWalker ped model structure (YDD/YTD/YCD/YFT/YMT and skeleton): https://github.com/dexyfex/CodeWalker/blob/master/CodeWalker.Core/World/Ped.cs
