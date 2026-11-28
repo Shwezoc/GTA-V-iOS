@@ -169,7 +169,8 @@ index 0000000..0000000
 +    float y = rotated.y * cx - rotated.z * sx;
 +    float z = rotated.y * sx + rotated.z * cx + 3.5;
 +    SceneProbeVertex output;
-+    float z_clip = z * 1.001001f - 0.1001001f; // D3D/Vulkan depth range, near=0.1, far=100\n+    output.position = float4(rotated.x * 1.25, y * 1.25, z_clip, z);
++    float z_clip = z * 1.001001f - 0.1001001f; // D3D/Vulkan depth range, near=0.1, far=100
++    output.position = float4(rotated.x * 1.25, y * 1.25, z_clip, z);
 +    output.color = face_colors[vertex_id / 6];
 +    return output;
 +}
