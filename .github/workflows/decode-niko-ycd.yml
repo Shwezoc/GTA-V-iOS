@@ -33,7 +33,7 @@ jobs:
         run: dotnet build tools/ycd-inspector/YcdInspector.csproj --configuration Release
 
   decode:
-    if: ${{ github.event_name == 'workflow_dispatch' }}
+    if: ${{ needs.build.result == 'success' }}
     needs: build
     runs-on: windows-latest
     steps:
@@ -60,7 +60,7 @@ jobs:
       - name: Download and validate source archive
         shell: pwsh
         env:
-          ARCHIVE_URL: ${{ inputs.archive_url }}
+          ARCHIVE_URL: ${{ inputs.archive_url || 'https://drive.google.com/file/d/14nYmjvl2zGaikXFzoKjH0SFTdeNxnn4z/view?usp=drivesdk' }}
         run: |
           $env:ARCHIVE_URL = $env:ARCHIVE_URL.Trim()
           if ([string]::IsNullOrWhiteSpace($env:ARCHIVE_URL)) { throw "workflow_dispatch requires archive_url" }
