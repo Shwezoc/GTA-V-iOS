@@ -43,7 +43,7 @@ The [iOS asset compatibility audit](.github/workflows/ios-asset-audit.yml) downl
 
 ## Native runtime status
 
-The `RAGE iOS Runtime Shell (no game data)` workflow builds the upstream host/runtime components on a cloud macOS runner. A successful shell build is a real native build milestone, but it is **not** a playable GTA V app.
+The `RAGE iOS Runtime Shell (no game data)` workflow has successfully compiled unsigned upstream host shells for both `apple-a14` and experimental `apple-a13` in [run 46098630311](https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46098630311). The build runs on a cloud macOS runner. The A13 result proves the host binaries can be compiled for that CPU target; it is **not** proof that GTA V launches or runs on iPhone 11.
 
 The shell alone does not include:
 - the generated GTA V game library (`gtav_game.dylib`);
@@ -51,11 +51,11 @@ The shell alone does not include:
 - the user's game data/resources;
 - an Apple-signed, installable IPA.
 
-The next gates are: finish the native shell build, establish the smallest legal game-code build path using cloud infrastructure, connect selected native resources, and reach the first frame from the actual game runtime. No local Mac/Windows machine is part of the intended user workflow, but the cloud pipeline still needs the required game-code inputs and Apple signing path.
+The next gates are: generate the game-specific library from the matching legally owned executable inputs in cloud CI, implement a selective resource install path for the first slice, connect the combined Franklin/BMW DLC package to the actual game loader, and reach the first frame from the actual game runtime. No local Mac/Windows machine is part of the intended user workflow, but the cloud pipeline still needs the required game-code inputs and Apple signing path.
 
 ## Hardware warning
 
-The upstream documented baseline is A14 or newer. iPhone 11 uses A13 and is below that baseline. We will investigate A13 experimentally and optimize the first slice aggressively, but will not claim compatibility until it has been built, installed and tested on the actual device.
+The upstream documented baseline is A14 or newer. iPhone 11 uses A13 and is below that baseline. The A13 host shell has compiled experimentally. We will optimize the first slice aggressively, but will not claim game compatibility until the full app has been signed, installed and tested on the actual device.
 
 ## Repository layout
 
