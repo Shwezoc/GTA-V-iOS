@@ -1,0 +1,10 @@
+[package]
+name = "bmw-yft-to-glb"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+anyhow = "1.0"
+rage-formats = "0.5.2"
+rage-render = "0.7.1"
