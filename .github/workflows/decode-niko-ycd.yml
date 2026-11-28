@@ -17,13 +17,35 @@ permissions:
   contents: read
 
 jobs:
-  decode:
+  build:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
+      - name: Pin and fetch CodeWalker parser
+        shell: pwsh
+        run: |
+          git clone https://github.com/dexyfex/CodeWalker.git third_party/CodeWalker
+          git -C third_party/CodeWalker checkout 485d56bec00262ed7fa472261cce7bbc6202b96e
+      - name: Build YCD inspector
+        run: dotnet build tools/ycd-inspector/YcdInspector.csproj --configuration Release
+
+  decode:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Pin and fetch CodeWalker parser
+        shell: pwsh
+        run: |
+          git clone https://github.com/dexyfex/CodeWalker.git third_party/CodeWalker
+          git -C third_party/CodeWalker checkout 485d56bec00262ed7fa472261cce7bbc6202b96e
       - name: Download and validate source archive
         shell: pwsh
         env:
@@ -39,13 +61,6 @@ jobs:
             $entries | ForEach-Object { Write-Host "$($_.FullName) ($($_.Length) bytes)" }
             $zip.ExtractToDirectory("$env:RUNNER_TEMP/niko-src")
           } finally { $zip.Dispose() }
-      - name: Pin and fetch CodeWalker parser
-        shell: pwsh
-        run: |
-          git clone https://github.com/dexyfex/CodeWalker.git third_party/CodeWalker
-          git -C third_party/CodeWalker checkout 485d56bec00262ed7fa472261cce7bbc6202b96e
-      - name: Build YCD inspector
-        run: dotnet build tools/ycd-inspector/YcdInspector.csproj --configuration Release
       - name: Decode all supplied YCD resources
         shell: pwsh
         run: |
@@ -53,7 +68,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $out | Out-Null
           $files = Get-ChildItem "$env:RUNNER_TEMP/niko-src" -Recurse -File -Filter *.ycd
           foreach ($file in $files) {
-            dotnet run --no-build --configuration Release --project tools/ycd-inspector/YcdInspector.csproj -- "$($file.FullName)" "$out"
+            dotnet run --configuration Release --project tools/ycd-inspector/YcdInspector.csproj -- "$($file.FullName)" "$out"
             if ($LASTEXITCODE -ne 0) { throw "YCD decode failed: $($file.Name)" }
           }
       - uses: actions/upload-artifact@v4
