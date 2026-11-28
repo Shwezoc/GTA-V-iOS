@@ -40,7 +40,7 @@ jobs:
           mkdir -p work/input work/unpacked work/output
           mkdir -p /tmp/franklin-transfer
           if [[ "$ARCHIVE_URL" == *"drive.google.com"* ]]; then
-            python3 -m pip install --user --disable-pip-version-check gdown
+            python3 -m pip install --user --break-system-packages --disable-pip-version-check gdown
             "$HOME/.local/bin/gdown" --fuzzy "$ARCHIVE_URL" -O /tmp/franklin-transfer/franklin-package.zip
           else
             curl --fail --location --retry 3 --retry-all-errors \
@@ -62,7 +62,7 @@ jobs:
           import pathlib, zipfile
           archives = list(pathlib.Path("/tmp/franklin-transfer").rglob("*.zip"))
           if len(archives) != 1:
-              raise SystemExit("Expected exactly one ZIP from SwissTransfer API; found " + str(len(archives)))
+              raise SystemExit("Expected exactly one downloaded ZIP archive; found " + str(len(archives)))
           archive = archives[0]
           root = pathlib.Path("work/unpacked").resolve()
           with zipfile.ZipFile(archive) as z:
