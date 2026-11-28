@@ -107,7 +107,7 @@ index 0000000..0000000 100644
 +      list_->clearDepthStencil(true, false, 1.0f, 0);
 +      backend_.DrawSceneProbe(list_, kSwapchainFormat);
 +    }
-+    // Frames presented over the last second, drawn in the top-left corner (--gtav_native_fps).
+     // Frames presented over the last second, drawn in the top-left corner (--gtav_native_fps).
 @@ -674,10 +674,15 @@
    void CreateFramebuffers() {
      framebuffers_.clear();
