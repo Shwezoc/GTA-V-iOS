@@ -1,0 +1,48 @@
+name: Convert BMW M5 F90 to GLB
+
+on:
+  push:
+    branches: [minimal-runtime]
+    paths:
+      - "tools/bmw-yft-to-glb/**"
+      - ".github/workflows/convert-bmw-glb.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout minimal-runtime
+        uses: actions/checkout@v4
+        with:
+          ref: minimal-runtime
+
+      - name: Download extracted RAGE resources
+        uses: actions/download-artifact@v4
+        with:
+          name: BMW-M5-F90-extracted-RAGE-assets
+          run-id: 46094904611
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          path: source
+
+      - name: Convert GTA V YFT and YTD to binary glTF
+        run: |
+          set -euo pipefail
+          cargo run --release --manifest-path tools/bmw-yft-to-glb/Cargo.toml -- source/bmw-assets out/bmw-m5-f90
+          test -s out/bmw-m5-f90/bmwm5f90.glb
+          test -s out/bmw-m5-f90/bmwm5f90_hi.glb
+          ls -lh out/bmw-m5-f90
+
+      - name: Publish converted model and previews
+        uses: actions/upload-artifact@v4
+        with:
+          name: BMW-M5-F90-GLB-and-previews
+          path: out/bmw-m5-f90/
+          if-no-files-found: error
+          retention-days: 30
