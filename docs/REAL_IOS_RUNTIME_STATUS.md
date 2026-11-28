@@ -6,8 +6,9 @@ This document separates verified native build results from actual playable-game 
 
 The `RAGE iOS Runtime Shell (no game data)` workflow completed successfully:
 
-- Run: [46115841108](https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46115841108)
-- Artifact: `rage-ios-gtav-app-shell-apple-a14-no-game-data`
+- Run: [46098630311](https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46098630311)
+- Artifacts: `rage-ios-gtav-app-shell-apple-a14-no-game-data` and `rage-ios-gtav-app-shell-apple-a13-no-game-data`.
+- Both matrix jobs (`apple-a14` and experimental `apple-a13`) completed successfully in that run.
 - The artifact contains an arm64 `GTAV.app` host executable, `librexruntime.dylib`, `librexgpu-xenos.dylib`, `libMoltenVK.dylib`, app metadata, runtime interface files and required third-party headers/licenses.
 - The CI binary audit and app assembly steps passed.
 
@@ -65,7 +66,7 @@ The GLB files are interchange/test formats, not proof that the upstream RAGE ren
 
 The upstream documented iOS baseline is A14 or newer; its development notes identify an A15 iPhone 13 mini as the tested device. The user's iPhone 11 uses A13 and is below that baseline.
 
-The native CI matrix now attempts both the documented `apple-a14` baseline and an experimental `apple-a13` compile. A successful `-mcpu=apple-a13` compile would still not prove that the full runtime is stable on iPhone 11. Compatibility requires installation and real-device testing.
+The A13 host shell has now compiled successfully with `-mcpu=apple-a13` in cloud CI. This proves that the shell binaries can be produced for the A13 CPU target; it does **not** prove that the app installs, launches, renders or runs the game on iPhone 11. Compatibility still requires the game library, required data/shaders, signing and real-device testing.
 
 ## Build and installation boundaries
 
