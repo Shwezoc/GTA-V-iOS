@@ -11,7 +11,7 @@ var input = Path.GetFullPath(args[0]);
 var output = Path.GetFullPath(args[1]);
 Directory.CreateDirectory(output);
 
-Dictionary<int, (string Name, string? Parent)>? skeletonBones = null;
+Dictionary<ushort, (string Name, string? Parent)>? skeletonBones = null;
 string? skeletonName = null;
 if (args.Length == 3)
 {
