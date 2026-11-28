@@ -87,7 +87,7 @@ if (args.Length > 0 && args[0] == "--pack-bmw-dlc")
     if (missingResources.Length > 0)
         throw new InvalidDataException("Packed DLC is missing native vehicle resources: " + string.Join(", ", missingResources));
 
-    var report = new
+    var dlcReport = new
     {
         status = "pass",
         output = Path.GetFileName(dlcOutputPath),
