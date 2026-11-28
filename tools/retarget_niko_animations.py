@@ -216,13 +216,22 @@ def main():
         })
         if len(obj.data.vertices) < 1000 or not matching_groups or weighted_vertices < 1000:
             continue
+        # Normalize every deforming mesh for glTF skin export. Some Muto
+        # outputs retain stale armature targets or hidden flags on split parts;
+        # merely changing modifier.object is not enough for Blender's exporter.
+        obj.hide_set(False)
+        obj.hide_viewport = False
+        obj.hide_render = False
+        obj.hide_select = False
         arm_modifiers = [m for m in obj.modifiers if m.type == "ARMATURE"]
-        if arm_modifiers:
-            for modifier in arm_modifiers:
-                modifier.object = armature
-        else:
-            modifier = obj.modifiers.new(name="Franklin_Armature", type="ARMATURE")
+        if not arm_modifiers:
+            arm_modifiers = [obj.modifiers.new(name="Franklin_Armature", type="ARMATURE")]
+        for modifier in arm_modifiers:
             modifier.object = armature
+            modifier.use_vertex_groups = True
+            modifier.use_bone_envelopes = False
+            modifier.show_viewport = True
+            modifier.show_render = True
         mesh_objects.append(obj)
 
     if not mesh_objects:
@@ -268,6 +277,30 @@ def main():
     gltf = glb_json(glb_out)
     if not gltf.get("skins") or not gltf.get("animations") or not gltf.get("meshes"):
         fail("Exported GLB is missing one or more of skins, animations, or meshes")
+
+    # A successful GLB with one unskinned head or a missing body is not a
+    # valid character. Require every substantial Franklin part to survive
+    # export as a skinned node bound to the selected 128-bone armature.
+    exported_nodes = gltf.get("nodes", [])
+    exported_parts = {}
+    for node in exported_nodes:
+        if node.get("mesh") is not None:
+            name = node.get("name", "")
+            exported_parts[name] = {
+                "mesh": node.get("mesh"),
+                "skin": node.get("skin")
+            }
+    expected_parts = {obj.name for obj in mesh_objects}
+    missing_parts = sorted(expected_parts - set(exported_parts))
+    unskinned_parts = sorted(
+        name for name in expected_parts
+        if name in exported_parts and exported_parts[name].get("skin") is None
+    )
+    if missing_parts or unskinned_parts:
+        fail("GLB character integrity failed: missing mesh nodes=" +
+             json.dumps(missing_parts) + "; unskinned mesh nodes=" +
+             json.dumps(unskinned_parts) + "; exported=" + json.dumps(exported_parts))
+
     mesh_vertex_counts = [
         int(accessor.get("count", 0))
         for accessor in gltf.get("accessors", [])
