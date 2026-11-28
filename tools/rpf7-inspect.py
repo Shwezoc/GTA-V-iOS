@@ -57,7 +57,7 @@ def inspect(path: Path) -> dict:
             value = names_blob[offset:end].decode("utf-8")
         except UnicodeDecodeError as e:
             raise RpfError(f"invalid UTF-8 name at offset {offset}") from e
-        if not value or "/" in value or "\\\\" in value or value in (".", ".."):
+        if not value or "/" in value or "\\" in value or value in (".", ".."):
             raise RpfError(f"unsafe entry name: {value!r}")
         return value
 
@@ -111,7 +111,8 @@ def inspect(path: Path) -> dict:
             if rec["kind"] == "dir":
                 walk(idx, full, depth + 1)
             else:
-                if rec["offset"] > size or rec.get("stored_size", 0) > size - rec["offset"]:
+                physical_size = rec.get("stored_size", 0) or rec.get("size", 0)
+                if rec["offset"] > size or physical_size > size - rec["offset"]:
                     raise RpfError(f"file data extends beyond archive: {full}")
                 files.append({"path": full, "kind": rec["kind"], "offset": rec["offset"],
                               "stored_size": rec.get("stored_size", 0), "size": rec.get("size"),
