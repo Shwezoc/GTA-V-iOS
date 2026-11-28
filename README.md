@@ -5,8 +5,9 @@ Experimental iOS porting and compatibility workspace targeting iPhone 11 (A13 Bi
 > This repository contains original integration code and tooling only. It does not include Rockstar Games source code, proprietary RAGE Engine code, or GTA V game assets. Use only game data you are legally entitled to use.
 
 ## Target
-- Device baseline: iPhone 11 (A13 Bionic)
-- Platform: iOS 15+
+- Prototype device baseline: iPhone 11 (A13 Bionic) for the lightweight SceneKit test only
+- Full upstream ReXGlue runtime target: iPhone 12 (A14) or newer, iOS 17+ (per upstream iOS port notes)
+- Platform: iOS 15+ for the prototype; iOS 17+ required for the upstream runtime
 - Native shell: SwiftUI
 - 3D prototype renderer: SceneKit (Metal-backed)
 - Portable integration layer: C++17
