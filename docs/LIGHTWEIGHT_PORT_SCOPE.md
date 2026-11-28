@@ -55,7 +55,7 @@ The `iOS GTA V asset compatibility audit` workflow downloads these existing arti
 3. Establish the smallest supported game-code build path from legally owned GTA V inputs. Do not upload proprietary game archives or generated game code to public Git history or public artifacts.
 4. Integrate the selected Franklin/BMW resources through the formats and resource-loading path actually supported by the runtime. Do not assume a GLB can be loaded by the upstream RAGE renderer.
 5. Build the first streamed gameplay slice and measure memory, CPU/GPU time, thermal behaviour and frame pacing.
-6. Attempt A13 compatibility experimentally. Upstream's documented baseline is A14 or newer, so iPhone 11 support is a research target, not a guarantee.
+6. Build both the A14 baseline and an experimental A13 variant in cloud CI. Upstream's documented baseline is A14 or newer, so an A13 compile is only an initial research result; iPhone 11 support still requires installation and real-device testing.
 
 ## What the current native CI does and does not prove
 
