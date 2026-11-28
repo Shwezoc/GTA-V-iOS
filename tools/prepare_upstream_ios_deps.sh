@@ -75,6 +75,8 @@ apply_once "$XENOS" "$PATCHES/xenosrecomp-gtav.patch"
 
 # Apply the depth-tested Plume 3D cube bring-up to the pinned upstream RAGE present pass; keep this patch idempotent.
 apply_once "$UPSTREAM" "$ROOT/patches/rage-scene-probe.patch"
+grep -q "DrawSceneProbe" "$UPSTREAM/gtav/src/native/backend.cpp"
+grep -q "scene_probe_depth_" "$UPSTREAM/gtav/src/native/renderer.cpp"
 
 echo
 echo "Third-party source trees are pinned and patched."
