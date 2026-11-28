@@ -1,4 +1,4 @@
-name: Package BMW M5 F90 as native GTA V DLC RPF7
+name: Package Franklin + BMW mobile slice as native GTA V DLC RPF7
 
 on:
   push:
@@ -30,6 +30,15 @@ jobs:
           repository: ${{ github.repository }}
           path: work/bmw-source
 
+      - name: Download Franklin native ped resources and retargeted animation
+        uses: actions/download-artifact@v4
+        with:
+          name: franklin-niko-retargeted-animated-glb
+          run-id: 46113312010
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          path: work/franklin-source
+
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -48,7 +57,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           New-Item -ItemType Directory -Force -Path work/out | Out-Null
           $dll = "tools/ycd-inspector/bin/Release/net8.0/YcdInspector.dll"
-          dotnet $dll --pack-bmw-dlc work/bmw-source work/out/dlc.rpf |
+          dotnet $dll --pack-mobile-slice-dlc work/bmw-source work/franklin-source work/out/dlc.rpf |
             Out-File -FilePath work/rpf-pack-report.json -Encoding utf8
           if (-not (Test-Path "work/out/dlc.rpf")) { throw "DLC RPF7 output is missing" }
           $stream = [System.IO.File]::OpenRead("work/out/dlc.rpf")
@@ -62,14 +71,14 @@ jobs:
           if ($report.status -ne "pass" -or -not $report.codeWalkerRoundTrip) {
             throw "CodeWalker RPF7 round-trip validation did not pass"
           }
-          Write-Host "BMW_DLC_RPF7_VALID bytes=$($report.bytes) resources=$($report.resourceCount) modParts=$($report.modPartCount)"
+          Write-Host "MOBILE_SLICE_RPF7_VALID bytes=$($report.bytes) resources=$($report.resourceCount) vehicleResources=$($report.vehicleResourceCount) modParts=$($report.vehicleModPartCount) franklinPedResources=$($report.franklinPedResourceCount)"
           $report | ConvertTo-Json -Depth 8 | Write-Host
           Remove-Item "work/out/dlc.rpf" -Force
 
       - name: Upload metadata-only RPF7 validation report
         uses: actions/upload-artifact@v4
         with:
-          name: bmw-m5-f90-rpf7-validation-report
+          name: franklin-bmw-mobile-slice-rpf7-validation-report
           path: work/rpf-pack-report.json
           if-no-files-found: error
           retention-days: 30
