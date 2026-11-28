@@ -58,8 +58,7 @@ if (args.Length > 0 && args[0] == "--pack-mobile-slice-dlc")
     var contentRoot = contentDocument.Root ?? throw new InvalidDataException("BMW content.xml has no root element.");
     var dataFiles = contentRoot.Element("dataFiles") ?? throw new InvalidDataException("BMW content.xml has no dataFiles element.");
     var changesToEnable = contentRoot.Element("contentChangeSets")?.Elements("Item")
-        .FirstOrDefault(item => (string?)item.Element("changeSetName") == "bmwm5f90_AUTOGEN")?
-        .Element("filesToEnable") ?? throw new InvalidDataException("BMW content.xml has no AUTOGEN filesToEnable list.");
+        .FirstOrDefault(item => (string?)item.Element("changeSetName") == "bmwm5f90_AUTOGEN")?.Element("filesToEnable") ?? throw new InvalidDataException("BMW content.xml has no AUTOGEN filesToEnable list.");
 
     void AddDlcDataFile(string virtualPath, string fileType, bool persistent)
     {
