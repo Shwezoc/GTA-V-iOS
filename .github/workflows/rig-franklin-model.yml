@@ -32,6 +32,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          ARCHIVE_URL="$(printf '%s' "$ARCHIVE_URL" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
           case "$ARCHIVE_URL" in
             https://*) ;;
             *) echo "Only HTTPS archive URLs are accepted"; exit 2 ;;
