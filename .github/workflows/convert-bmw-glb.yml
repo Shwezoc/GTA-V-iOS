@@ -45,6 +45,7 @@ jobs:
           npm install --prefix /tmp/bmw-viewer-deps --no-save three@0.180.0
           mkdir -p browser/vendor/examples/jsm/loaders browser/vendor/examples/jsm/utils
           cp /tmp/bmw-viewer-deps/node_modules/three/build/three.module.js browser/vendor/three.module.js
+          cp /tmp/bmw-viewer-deps/node_modules/three/build/three.core.js browser/vendor/three.core.js
           cp /tmp/bmw-viewer-deps/node_modules/three/examples/jsm/loaders/GLTFLoader.js browser/vendor/examples/jsm/loaders/GLTFLoader.js
           cp /tmp/bmw-viewer-deps/node_modules/three/examples/jsm/utils/BufferGeometryUtils.js browser/vendor/examples/jsm/utils/BufferGeometryUtils.js
           mkdir -p browser/assets/models/bmw-m5-f90
