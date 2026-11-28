@@ -143,6 +143,7 @@ def main():
 
     fps = bpy.context.scene.render.fps / bpy.context.scene.render.fps_base
     clip_report = []
+    seen_actions = set()
     for clip_obj in clips_container.children:
         props = clip_obj.clip_properties
         links = list(props.animations)
@@ -157,21 +158,25 @@ def main():
             end = float(link.end_frame)
             if end <= start:
                 fail(f"Clip {props.hash} has an invalid source frame range")
-            track = armature.animation_data.nla_tracks.new()
-            track.name = str(props.hash)
-            strip = track.strips.new(str(props.hash), 1, action)
-            strip.action_frame_start = start
-            strip.action_frame_end = end
-            duration_frames = max(1.0, float(props.duration) * fps)
-            strip.scale = duration_frames / (end - start)
-            strip.blend_type = "REPLACE"
-            strip.extrapolation = "NOTHING"
+            strip_created = action.name not in seen_actions
+            if strip_created:
+                track = armature.animation_data.nla_tracks.new()
+                track.name = str(props.hash)
+                strip = track.strips.new(str(props.hash), 1, action)
+                strip.action_frame_start = start
+                strip.action_frame_end = end
+                duration_frames = max(1.0, float(props.duration) * fps)
+                strip.scale = duration_frames / (end - start)
+                strip.blend_type = "REPLACE"
+                strip.extrapolation = "NOTHING"
+                seen_actions.add(action.name)
             clip_report.append({
                 "clip": str(props.hash),
                 "action": action.name,
                 "startFrame": start,
                 "endFrame": end,
-                "durationSeconds": float(props.duration)
+                "durationSeconds": float(props.duration),
+                "nlaStripCreated": strip_created
             })
 
     mesh_objects = [
