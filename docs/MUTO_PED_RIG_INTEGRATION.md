@@ -38,3 +38,14 @@ This is the selected fallback rig for our supplied static Franklin GLB because t
 ## Reproducible upstream pin
 
 Use release `v0.3.2` (tag commit `3352c91`) rather than tracking the moving default branch. Download the release ZIP from the upstream Releases page when a Blender-capable conversion environment is available.
+
+
+## Automated rigging pipeline added to this repository
+
+- `.github/workflows/rig-franklin-model.yml` downloads a user-supplied direct HTTPS model URL, installs Blender 5.2.0, Muto Ped Rig v0.3.2 and Sollumz v2.9.0, then runs the upstream headless batch worker.
+- `tools/rig_franklin.py` invokes the Muto batch chain and exports a skinned GLB intermediate with the armature selected.
+- The workflow retains output artifacts and diagnostics for 30 days, including failure reports where produced.
+- Supported single-file inputs: GLB, FBX and OBJ. A GLTF JSON file with external BIN/textures is not accepted as a single-file source.
+- Dispatch requires a direct HTTPS download URL. A landing page (for example a file-transfer web page) is not a direct download URL.
+- The pipeline has been committed but has not yet been executed against the Franklin model: the prior local GLB is not present in the repository or current Library, so a source-file URL is still required.
+- Successful rigging produces a GTA freemode fallback skeleton, not Franklin's exact protagonist-specific `player_one.yft`. It also does not mean the native RAGE runtime can already render the character; runtime skinned-mesh and animation support remain separate tasks.
