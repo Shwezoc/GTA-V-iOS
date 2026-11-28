@@ -58,14 +58,22 @@ jobs:
           $env:ARCHIVE_URL = $env:ARCHIVE_URL.Trim()
           if ([string]::IsNullOrWhiteSpace($env:ARCHIVE_URL)) { throw "workflow_dispatch requires archive_url" }
           if (-not $env:ARCHIVE_URL.StartsWith("https://")) { throw "Only HTTPS archive URLs are accepted" }
+          git clone --depth 1 https://github.com/tekru-labs/swish-dl.git "$env:RUNNER_TEMP/swish-dl"
+          Push-Location "$env:RUNNER_TEMP/swish-dl"
+          npm install --omit=dev
+          node index.js $env:ARCHIVE_URL --output "$env:RUNNER_TEMP/niko-download"
+          Pop-Location
+          $archives = @(Get-ChildItem "$env:RUNNER_TEMP/niko-download" -Recurse -File -Filter *.zip)
+          if ($archives.Count -ne 1) { throw "Expected exactly one ZIP from SwissTransfer, found $($archives.Count)" }
           Add-Type -AssemblyName System.IO.Compression.FileSystem
-          Invoke-WebRequest -Uri $env:ARCHIVE_URL -OutFile "$env:RUNNER_TEMP/niko.zip"
-          $zip = [System.IO.Compression.ZipFile]::OpenRead("$env:RUNNER_TEMP/niko.zip")
+          $zip = [System.IO.Compression.ZipFile]::OpenRead($archives[0].FullName)
           try {
-            $entries = $zip.Entries | Where-Object { $_.FullName -match '\\.ycd$' }
+            $entries = $zip.Entries | Where-Object { $_.FullName -match '\.ycd$' }
             if ($entries.Count -lt 1) { throw "No YCD files found in archive" }
             $entries | ForEach-Object { Write-Host "$($_.FullName) ($($_.Length) bytes)" }
-            $zip.ExtractToDirectory("$env:RUNNER_TEMP/niko-src")
+            $nikoSrc = "$env:RUNNER_TEMP/niko-src"
+            New-Item -ItemType Directory -Force -Path $nikoSrc | Out-Null
+            $zip.ExtractToDirectory($nikoSrc)
           } finally { $zip.Dispose() }
       - name: Decode all supplied YCD resources
         shell: pwsh
