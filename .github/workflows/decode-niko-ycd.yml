@@ -110,12 +110,7 @@ jobs:
           $out = "$env:GITHUB_WORKSPACE/ycd-output"
           $xmlFiles = Get-ChildItem $out -File -Filter *.ycd.xml
           foreach ($xml in $xmlFiles) {
-            $base = $xml.Name -replace '\.xml        with:
-          name: niko-ycd-decoded-xml-and-bone-track-report
-          path: ycd-output/
-          if-no-files-found: error
-          retention-days: 30
-, ''
+            $base = [System.IO.Path]::GetFileNameWithoutExtension($xml.Name)
             $target = Join-Path $out ($base + ".nikoanim.json")
             python tools/ycd-inspector/export_niko_animation.py --xml $xml.FullName --skeleton "$env:RUNNER_TEMP/mp_m_skeleton.json" --out $target
             if ($LASTEXITCODE -ne 0) { throw "Animation intermediate export failed: $($xml.Name)" }
