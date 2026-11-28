@@ -45,7 +45,7 @@ index 0000000..0000000 100644
                      "log how many had changed (diagnostic)");
 +REXCVAR_DEFINE_BOOL(gtav_native_scene_probe, true, "GTAV",
 +                    "Native renderer: draw a depth-tested 3D Plume cube over the presented frame (diagnostic)");
-@@ -1987,1 +1987,38 @@
+@@ -1987,1 +1987,36 @@
 -  // FPS counter (PSDigits) over the bound framebuffer, top-left corner at (x, y).
 +  // Depth-tested 3D cube bring-up probe. Uses the existing Plume device and present command list.
 +  std::unique_ptr<RenderShader> scene_probe_vs, scene_probe_ps;
@@ -96,7 +96,7 @@ diff --git a/gtav/src/native/renderer.cpp b/gtav/src/native/renderer.cpp
 index 0000000..0000000 100644
 --- a/gtav/src/native/renderer.cpp
 +++ b/gtav/src/native/renderer.cpp
-@@ -1219,5 +1219,9 @@
+@@ -1219,4 +1219,11 @@
      } else {
        list_->clearColor(0, plume::RenderColor(0.12f, 0.0f, 0.12f, 1.0f));
      }
@@ -108,7 +108,7 @@ index 0000000..0000000 100644
 +      list_->clearDepthStencil(true, false, 1.0f, 0);
 +      backend_.DrawSceneProbe(list_, kSwapchainFormat);
 +    }
-+    // FPS counter (PSDigits) over the bound framebuffer, top-left corner at (x, y).
++    // Frames presented over the last second, drawn in the top-left corner (--gtav_native_fps).
 @@ -674,10 +674,15 @@
    void CreateFramebuffers() {
      framebuffers_.clear();
@@ -133,7 +133,7 @@ new file mode 100644
 index 0000000..0000000
 --- /dev/null
 +++ b/gtav/src/native/shaders/native_scene_probe.hlsl
-@@ -0,0 +1,61 @@
+@@ -0,0 +1,44 @@
 +struct SceneProbeVertex {
 +    float4 position : SV_Position;
 +    float3 color : COLOR0;
