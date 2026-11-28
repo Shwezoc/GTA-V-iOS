@@ -38,7 +38,8 @@ jobs:
           mkdir -p /tmp/franklin-transfer
           if [[ "$ARCHIVE_URL" == *"drive.google.com"* ]]; then
             python3 -m pip install --user --break-system-packages --disable-pip-version-check gdown
-            "$HOME/.local/bin/gdown" --fuzzy "$ARCHIVE_URL" -O /tmp/franklin-transfer/franklin-package.zip
+            FILE_ID="$(python3 -c 'import re,sys; u=sys.argv[1]; m=re.search(r"/file/d/([A-Za-z0-9_-]+)", u) or re.search(r"[?&]id=([A-Za-z0-9_-]+)", u); print(m.group(1) if m else u)' "$ARCHIVE_URL")"
+            "$HOME/.local/bin/gdown" "$FILE_ID" -O /tmp/franklin-transfer/franklin-package.zip
           else
             curl --fail --location --retry 3 --retry-all-errors \
               --user-agent "Mozilla/5.0" \
