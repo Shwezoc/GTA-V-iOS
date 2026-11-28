@@ -48,6 +48,14 @@ Artifact: `BMW-M5-F90-GLB-and-previews` from workflow run [46112567911](https://
 
 The `iOS GTA V asset compatibility audit` workflow downloads these existing artifacts and checks their structure without committing the proprietary-derived binary assets into the public repository.
 
+### Native BMW DLC packaging proof
+
+- Workflow: [Package BMW M5 F90 as native GTA V DLC RPF7](https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46118144551).
+- CodeWalker created and reopened a 48,361,472-byte RPF7 DLC package from the supplied BMW resources.
+- Round-trip scan found 3 RPF archives, 21 native resource entries and all 18 tuning/mod-part YFT resources; the base vehicle YFT/YTD and high-detail YFT were present.
+- CI uploaded only a 535-byte metadata report. The generated 48 MB DLC binary was deleted on the ephemeral runner and was not published as a public artifact.
+- This validates RPF7 packaging and CodeWalker parsing, **not** in-game DLC mounting or successful vehicle spawning.
+
 ## Runtime strategy
 
 1. Keep building and auditing the actual upstream iOS runtime in cloud macOS GitHub Actions. The user workflow remains iPhone-only; no local Mac or Windows PC is assumed.
