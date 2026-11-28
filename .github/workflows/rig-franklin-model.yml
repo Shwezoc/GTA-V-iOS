@@ -21,8 +21,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Checkout project
+      - name: Checkout project tools from minimal-runtime
         uses: actions/checkout@v4
+        with:
+          ref: minimal-runtime
 
       - name: Download and safely unpack Franklin OBJ package
         env:
