@@ -76,6 +76,10 @@ echo "Generated source: $GENERATED"
 echo "Shell bundle: $APP"
 echo "No game data or generated source will be uploaded."
 
+echo "=== Auditing local generated filesystem/archive call-site candidates ==="
+python3 "$ROOT/tools/audit_generated_filesystem.py" "$GENERATED_COPY" --output "$OUT/GENERATED-FILESYSTEM-CANDIDATES.json"
+echo "Filesystem candidate report stays local and is not uploaded."
+
 python3 "$UPSTREAM/tools/game_dll/build_game_dll.py" \
   "$LLVM_BIN" \
   "$GENERATED_COPY" \
