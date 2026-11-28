@@ -165,7 +165,7 @@
     INFOPLIST_FILE = Info.plist;
     GENERATE_INFOPLIST_FILE = YES;
     SWIFT_OBJC_BRIDGING_HEADER = "ShwezovGTAV-Bridging-Header.h";
-    HEADER_SEARCH_PATHS = "$(SRCROOT)/../engine/include";
+    HEADER_SEARCH_PATHS = ("$(inherited)", "$(SRCROOT)", "$(SRCROOT)/../engine/include");
    };
    name = Debug;
   };  A00000000000000000000062 = {
@@ -180,7 +180,7 @@
     INFOPLIST_FILE = Info.plist;
     GENERATE_INFOPLIST_FILE = YES;
     SWIFT_OBJC_BRIDGING_HEADER = "ShwezovGTAV-Bridging-Header.h";
-    HEADER_SEARCH_PATHS = "$(SRCROOT)/../engine/include";
+    HEADER_SEARCH_PATHS = ("$(inherited)", "$(SRCROOT)", "$(SRCROOT)/../engine/include");
    };
    name = Release;
   };
