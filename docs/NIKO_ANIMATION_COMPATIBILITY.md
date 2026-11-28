@@ -1,17 +1,16 @@
-# Niko animation compatibility report
+# Niko animation compatibility and Franklin retarget report
 
 Date: 2026-11-28  
 Branch: `minimal-runtime`
 
 ## Source decode
 
-The supplied Niko Walk Style Addon archive was decoded by the pinned CodeWalker-based YCD inspector.
+The supplied Niko Walk Style Addon archive is decoded with the pinned CodeWalker YCD inspector.
 
-- Workflow run: https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46108348760
-- Artifact: https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46108348760/artifacts/15247764655
-- `move_m@generic_niko.ycd`: 66 clips, 22 animation map entries.
-- `move_m@wfire@nikowalk.ycd`: 5 clips (`idle_intro`, `idle`, `run`, `sprint`, `walk`), 4 animation map entries.
-- The four walk-style animations each contain 108 bone-track records and 106 unique bone IDs.
+- Decode workflow: https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46109067134
+- Source `move_m@generic_niko.ycd`: 66 clips, 22 animation map entries.
+- Source `move_m@wfire@nikowalk.ycd`: 5 clips (`idle_intro`, `idle`, `run`, `sprint`, `walk`), 4 animation map entries.
+- Each of the four walk-style animations has 108 bone-track records and 106 unique bone IDs.
 
 ## Exact skeleton-tag comparison
 
@@ -23,20 +22,40 @@ The Niko walk-style YCD bone IDs were compared against the pinned Muto Ped Rig v
 - Exact tag matches: **106 / 106**
 - Unmatched IDs: **0**
 
-This establishes exact bone-tag coverage for the Niko walk-style dictionary against the Freemode Male reference skeleton. It does **not** prove that the animation curves are already being sampled, retargeted, or played by the native RAGE/Plume runtime.
+The broader `move_m@generic_niko.ycd` dictionary has 119 unique bone IDs. Its 106 shared IDs match; 13 IDs are not present in the 128-bone reference and remain out of scope for this walk-style retarget.
 
-The broader `move_m@generic_niko.ycd` dictionary has 119 unique bone IDs. Its 106 shared IDs match; 13 IDs are not present in the 128-bone reference and require further investigation before using every generic clip.
+## Franklin retarget and GLB export — completed
 
-## Automation
+The CI pipeline now performs the complete offline conversion:
 
-The YCD inspector now optionally accepts the pinned skeleton JSON and writes per-animation mapped bone names plus an aggregate compatibility summary into each JSON report. The GitHub Actions workflow fetches the exact v0.3.2 skeleton reference and supplies it to the inspector.
+1. Downloads and rigs the supplied Franklin OBJ on the GTA V Freemode Male skeleton.
+2. Decodes the supplied `move_m@wfire@nikowalk.ycd` using the pinned CodeWalker parser.
+3. Imports the YCD XML through pinned Sollumz v2.9.0.
+4. Retargets all 106 Niko bone tags onto the rigged Franklin armature.
+5. Builds NLA clip strips and exports a skinned glTF 2.0 binary.
 
-## Next implementation stages
+Successful retarget workflow:
 
-1. Confirm the new CI build compiles with skeleton-aware reporting.
-2. Run the decoder again to produce the enriched reports.
-3. Inspect the clip-to-animation references and sequence channel formats; preserve the YCD source timing and track data.
-4. Implement a converter/retarget stage for the Niko walk set into a documented intermediate animation format.
-5. Implement or connect the native RAGE/Plume animation sampler and GPU skinning path, then verify on-device playback.
+- Run: https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46109971198
+- Artifact: https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46109971198/artifacts/15248967396
+- Output: `niko-animated/franklin_niko_animated.glb`
+- GLB size: 776,424 bytes
+- Meshes: 1
+- Skins: 1
+- Animation actions exported: **4**
+- Clip entries: **5** (`idle`, `idle_intro`, `walk`, `run`, `sprint`)
+- Retargeted armature: `franklin_skel`, 128 bones
+- Matched Niko bone IDs: **106 / 106**
+- Unmatched bone IDs: **0**
 
-No claim of in-game animation playback is made until a native runtime capture demonstrates it.
+The successful CI log includes `NIKO_RETARGET_OK` and `FRANKLIN_NIKO_ANIMATED_GLB_VALID`. The output GLB header and its mesh/skin/animation tables were independently validated after artifact download.
+
+## Scope and limitations
+
+This proves the Niko walk-style curves were imported by Sollumz, retargeted to the rigged Franklin Freemode Male skeleton, and exported as a skinned GLB with four animation actions. It does **not** prove playback inside the native RAGE/Plume iOS runtime.
+
+The Franklin GTA resource is still an add-on ped based on the Freemode Male skeleton, not the original `player_one` story-character skeleton. The GLB is an intermediate asset for the native renderer integration stage, not a native GTA V YCD resource.
+
+## Next implementation stage
+
+Integrate the GLB animation data into the native RAGE/Plume asset path (or implement a YCD-native runtime loader), connect clip selection and animation sampling to the character's 128-bone skinning palette, and verify visible playback on the iOS device. Do not mark the game character as animated in RAGE until a native runtime capture confirms it.
