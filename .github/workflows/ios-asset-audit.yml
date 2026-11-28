@@ -1,0 +1,67 @@
+name: iOS GTA V asset compatibility audit
+
+on:
+  push:
+    branches: [minimal-runtime]
+    paths:
+      - ".github/workflows/ios-asset-audit.yml"
+      - "tools/audit_ios_assets.py"
+      - "docs/LIGHTWEIGHT_PORT_SCOPE.md"
+  workflow_dispatch:
+    inputs:
+      franklin_run_id:
+        description: GitHub Actions run ID containing the Franklin/Niko asset artifact
+        required: true
+        default: "46113312010"
+        type: string
+      bmw_run_id:
+        description: GitHub Actions run ID containing the BMW M5 F90 asset artifact
+        required: true
+        default: "46112567911"
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  audit-assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Download Franklin model and retargeted animations
+        uses: actions/download-artifact@v4
+        with:
+          name: franklin-niko-retargeted-animated-glb
+          run-id: ${{ inputs.franklin_run_id || '46113312010' }}
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          path: work/assets/franklin
+
+      - name: Download BMW M5 F90 model
+        uses: actions/download-artifact@v4
+        with:
+          name: BMW-M5-F90-GLB-and-previews
+          run-id: ${{ inputs.bmw_run_id || '46112567911' }}
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          path: work/assets/bmw
+
+      - name: Validate GLB files, skinning, animation and texture reports
+        run: |
+          set -euo pipefail
+          python3 tools/audit_ios_assets.py \
+            --franklin-dir work/assets/franklin \
+            --bmw-dir work/assets/bmw \
+            --output work/ios-asset-audit.json
+
+      - name: Upload asset compatibility report
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-gta-v-asset-compatibility-report
+          path: work/ios-asset-audit.json
+          if-no-files-found: error
+          retention-days: 30
