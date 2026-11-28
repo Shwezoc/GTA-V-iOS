@@ -120,8 +120,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          ADDONS="$RUNNER_TEMP/blender/5.2/scripts/addons"
+          export PYTHONPATH="$ADDONS${PYTHONPATH:+:$PYTHONPATH}"
           blender --background \
-            --python-expr "import bpy; bpy.ops.preferences.addon_enable(module='Sollumz'); bpy.ops.preferences.addon_enable(module='muto_ped_rig'); bpy.ops.wm.save_userpref(); print('ADDONS_ENABLED', 'Sollumz', 'muto_ped_rig')" \
+            --python-expr "import sys,bpy; sys.path.insert(0, '$ADDONS'); bpy.utils.refresh_script_paths(); import Sollumz; bpy.ops.preferences.addon_enable(module='Sollumz'); bpy.ops.preferences.addon_enable(module='muto_ped_rig'); bpy.ops.wm.save_userpref(); print('ADDONS_ENABLED', 'Sollumz', 'muto_ped_rig')" \
             --python "$GITHUB_WORKSPACE/tools/rig_franklin.py" -- \
             "src=$GITHUB_WORKSPACE/work/input/franklin.obj" \
             "out=$GITHUB_WORKSPACE/work/output" \
