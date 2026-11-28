@@ -180,15 +180,54 @@ def main():
                 "nlaStripCreated": strip_created
             })
 
-    mesh_objects = [
-        obj for obj in bpy.data.objects
-        if obj.type == "MESH" and any(
-            modifier.type == "ARMATURE" and modifier.object == armature
-            for modifier in obj.modifiers
+    # Muto's GTA resource exporter can leave the source body mesh without an
+    # Armature modifier in the saved .blend, while the imported YCD contributes
+    # a tiny helper mesh named "skel". Never mistake that helper for the ped.
+    # Recover the actual body by requiring substantial geometry and bone-named
+    # vertex groups, then attach the selected armature explicitly.
+    mesh_diagnostics = []
+    mesh_objects = []
+    bone_names = set(armature.data.bones.keys())
+    for obj in bpy.data.objects:
+        if obj.type != "MESH":
+            continue
+        group_names = {group.name for group in obj.vertex_groups}
+        matching_groups = sorted(group_names & bone_names)
+        weighted_vertices = sum(
+            1 for vertex in obj.data.vertices
+            if any(
+                assignment.group < len(obj.vertex_groups)
+                and obj.vertex_groups[assignment.group].name in bone_names
+                and assignment.weight > 0.0001
+                for assignment in vertex.groups
+            )
         )
-    ]
+        mesh_diagnostics.append({
+            "name": obj.name,
+            "vertices": len(obj.data.vertices),
+            "polygons": len(obj.data.polygons),
+            "vertexGroups": len(group_names),
+            "matchingBoneGroups": len(matching_groups),
+            "weightedVertices": weighted_vertices,
+            "armatureModifiers": [
+                modifier.object.name if modifier.type == "ARMATURE" and modifier.object else None
+                for modifier in obj.modifiers if modifier.type == "ARMATURE"
+            ]
+        })
+        if len(obj.data.vertices) < 1000 or not matching_groups or weighted_vertices < 1000:
+            continue
+        arm_modifiers = [m for m in obj.modifiers if m.type == "ARMATURE"]
+        if arm_modifiers:
+            for modifier in arm_modifiers:
+                modifier.object = armature
+        else:
+            modifier = obj.modifiers.new(name="Franklin_Armature", type="ARMATURE")
+            modifier.object = armature
+        mesh_objects.append(obj)
+
     if not mesh_objects:
-        fail("No skinned mesh with an Armature modifier targeting the selected rig was found")
+        fail("Franklin body mesh was not recoverable: no substantial mesh has weighted vertex groups matching the target rig. Mesh diagnostics: " + json.dumps(mesh_diagnostics))
+    print("FRANKLIN_BODY_MESHES", json.dumps(mesh_diagnostics))
 
     bpy.context.scene.frame_start = 1
     bpy.context.scene.frame_end = max(2, int(max(
@@ -229,6 +268,14 @@ def main():
     gltf = glb_json(glb_out)
     if not gltf.get("skins") or not gltf.get("animations") or not gltf.get("meshes"):
         fail("Exported GLB is missing one or more of skins, animations, or meshes")
+    mesh_vertex_counts = [
+        int(accessor.get("count", 0))
+        for accessor in gltf.get("accessors", [])
+        if accessor.get("type") == "VEC3" and accessor.get("min") is not None
+    ]
+    total_exported_vertices = max(mesh_vertex_counts, default=0)
+    if total_exported_vertices < 1000:
+        fail(f"GLB contains only {total_exported_vertices} position vertices; expected the Franklin body mesh, not a skeleton helper")
 
     report = {
         "ok": True,
@@ -239,6 +286,8 @@ def main():
         "matchedBoneIds": score,
         "unmatchedBoneIds": missing,
         "skinnedMeshObjects": [obj.name for obj in mesh_objects],
+        "meshDiagnostics": mesh_diagnostics,
+        "exportedPositionVertexCount": total_exported_vertices,
         "retargetedAnimations": retargeted,
         "clips": clip_report,
         "ycdXml": {"path": os.path.basename(ycd_xml_out), "bytes": os.path.getsize(ycd_xml_out)},
@@ -253,6 +302,7 @@ def main():
         "blend": {"path": os.path.basename(blend_out), "bytes": os.path.getsize(blend_out)},
         "limitations": [
             "This is a Blender/Sollumz-retargeted skinned GLB intermediate, not a native RAGE runtime resource.",
+            "The GLB export is rejected unless it contains at least 1,000 body-mesh position vertices; tiny YCD skeleton helper meshes are excluded.",
             "Playback must still be validated in the iOS RAGE/Plume renderer."
         ]
     }
