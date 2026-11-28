@@ -1,6 +1,13 @@
 # Custom 3D scene pass in the upstream RAGE/Plume renderer
 
-Status: native RAGE present-pass patch is implemented in `patches/rage-scene-probe.patch`; the first diagnostic cube and per-swapchain-image D32 depth attachments are awaiting iOS CI compilation and runtime validation. This is not yet a GLB importer or BMW integration.
+Status: the native RAGE present-pass patch and diagnostic cube shaders compile successfully in both iOS CI targets (experimental Apple A13 and A14). The unsigned shell artifacts contain the native arm64 executable and embedded `VSSceneProbe`, `PSSceneProbe`, and `gtav_native_scene_probe` symbols. **Actual on-device rendering, D32 depth behavior, and visual capture are still pending.** This is not yet a GLB importer or BMW integration.
+
+Latest verified CI run:
+- Run: https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46098630311
+- Commit built: `dcc9939b9bb61c1b3c7a510dcc81e8ac20359cf6`
+- A13 job: success; artifact `rage-ios-gtav-app-shell-apple-a13-no-game-data` (7,979,001 bytes)
+- A14 job: success; artifact `rage-ios-gtav-app-shell-apple-a14-no-game-data` (7,995,533 bytes)
+- Both artifacts are unsigned native iOS shell packages with no Rockstar game data and are not playable IPAs.
 
 Pinned revisions:
 - GTAV/ReXGlue: `andrewnakas/gtav-recomp@2a76184f563e4b604a88bea8eeed1334e77f3220`
@@ -30,8 +37,9 @@ The proposed pass is therefore a native Plume scene pass hosted by the RAGE rend
 
 - Implemented: `Backend::DrawSceneProbe` creates a Plume graphics pipeline and draws a procedural 36-vertex cube from `SV_VertexID` in the existing RAGE present command list, after the guest front-buffer blit.
 - Implemented: each swapchain image receives a matching D32 depth texture attached to its present framebuffer; the custom pass transitions and clears depth immediately before drawing.
-- Pending: compile the patch in the iOS RAGE CI jobs, confirm the D32 target and SPIR-V shader are accepted by the iOS MoltenVK device, and capture a stable rendered cube.
-- Next: replace the procedural shader-generated vertices with an uploaded mesh, then introduce the GLB asset loader.
+- Verified by CI: the patched upstream iOS shell compiles for both A13 and A14; the resulting arm64 executable contains the diagnostic shader and CVar symbols.
+- Not yet verified: the cube is actually visible on an iPhone, the D32 target works on the device's MoltenVK path, or depth occlusion is visually correct.
+- Next: capture the real RAGE renderer output on device, validate depth behavior, then replace procedural vertices with an uploaded indexed mesh.
 
 The pinned Plume `examples/triangle/main.cpp` and `examples/cube/main.cpp` demonstrate the relevant API families: `createPipelineLayout`, `createShader`, `createGraphicsPipeline`, `createBuffer`, `setGraphicsPipelineLayout`, `setPipeline`, `setVertexBuffers`, and `drawInstanced`.
 
@@ -67,12 +75,12 @@ The upstream project currently has no ready-made GLB/glTF importer. The existing
 ## Acceptance checks
 
 Do not call this milestone complete until:
-- The custom pass is compiled into the pinned upstream iOS runtime, not merely into the Swift diagnostic app.
-- A Plume-rendered indexed mesh appears in the actual RAGE renderer's submitted frame.
-- Depth testing correctly occludes the mesh.
-- The pass survives swapchain resize and multiple frames in flight.
-- The BMW is loaded from the GLB asset path and appears in that same pass.
-- The character appears in that same pass.
+- The custom pass is compiled into the pinned upstream iOS runtime, not merely into the Swift diagnostic app. **Passed in A13 and A14 CI.**
+- A Plume-rendered indexed mesh appears in the actual RAGE renderer's submitted frame. **Pending on-device capture.**
+- Depth testing correctly occludes the mesh. **Pending on-device validation.**
+- The pass survives swapchain resize and multiple frames in flight. **Pending on-device validation.**
+- The BMW is loaded from the GLB asset path and appears in that same pass. **Not implemented.**
+- The character appears in that same pass. **Not implemented.**
 - Build logs and a runtime capture prove the renderer path; a Three.js/SceneKit preview is not evidence.
 
 ## Device and packaging constraints
@@ -81,20 +89,18 @@ Do not call this milestone complete until:
 - The iOS runtime shell build is not a playable game and does not contain game code or game data.
 - Keep all Rockstar-derived game data, generated game code, game shaders, and private game libraries out of the repository and CI artifacts.
 
-
 ## Verified Plume depth API
 
-The pinned `plume_render_interface_types.h` defines `RenderTextureDesc::DepthTarget(...)`, `RenderFormat::D32_FLOAT`, `RenderFramebufferDesc::depthAttachment`, and the pipeline fields `depthEnabled`, `depthWriteEnabled`, `depthFunction`, and `depthTargetFormat`. The command-list interface exposes `clearDepthStencil(...)`. These are present in the pinned API; actual D32 support and the required transition/layout behavior still need to be validated on the iOS MoltenVK device.
+The pinned `plume_render_interface_types.h` defines `RenderTextureDesc::DepthTarget(...)`, `RenderFormat::D32_FLOAT`, `RenderFramebufferDesc::depthAttachment`, and the pipeline fields `depthEnabled`, `depthWriteEnabled`, `depthFunction`, and `depthTargetFormat`. The command-list interface exposes `clearDepthStencil(...)`. These APIs compile in the current iOS CI build; actual D32 support and the required transition/layout behavior still need to be validated on the iOS MoltenVK device.
 
+## Shader build integration
 
-## Shader build integration verified in Plume
+The `rage-scene-probe.patch` adds the HLSL shader to the upstream native shader generation commands, creates SPIR-V vertex and pixel shader headers, includes those headers in the native blit shader bundle, and wires the new HLSL file into CMake dependencies. The successful iOS build plus the embedded `VSSceneProbe` and `PSSceneProbe` strings in the executable confirm that the diagnostic shader code is part of the compiled binary.
 
-The pinned Plume revision provides CMake helpers `plume_compile_vertex_shader` and `plume_compile_pixel_shader`. Its cube example invokes these helpers on HLSL source files; the helpers produce backend-specific shader blobs (SPIR-V, DXIL, and Metal where applicable) that are included by the C++ example. The native RAGE renderer's current shader directory and build target must be extended to compile the custom pass shaders through the same helpers (or an equivalent existing upstream shader-generation path). Do not hard-code a SPIR-V-only shader into an Apple Metal runtime.
-
-The cube example's CMake target is an example executable and is not linked into the RAGE runtime. Copying its source file alone is insufficient: the actual native renderer target must own the shader-generation commands, include paths, shader blobs, and Plume resources.
+This proves compilation, not visual output. Runtime validation on the actual device remains required.
 
 ## Render-target sequencing detail
 
-The existing RAGE present framebuffer is currently created with a color attachment only. Add a depth attachment per swapchain image when the framebuffer is created. Keep the guest front-buffer blit first; only clear the depth attachment immediately before the custom geometry draw, so the game's color image remains the background. The custom pass must set viewport/scissor and bind the framebuffer/pipeline explicitly, then leave the framebuffer in the state expected by the existing counter/menu and PRESENT transition.
+The existing RAGE present framebuffer is created with the guest swapchain color attachment plus the new per-image depth attachment. Keep the guest front-buffer blit first; only clear the depth attachment immediately before the custom geometry draw, so the game's color image remains the background. The custom pass must set viewport/scissor and bind the framebuffer/pipeline explicitly, then leave the framebuffer in the state expected by the existing counter/menu and PRESENT transition.
 
-This is an integration requirement, not yet a source-code patch. The upstream source is a Git submodule pinned by this repository; its files are not ordinary tracked files in the parent repository. Any implementation must therefore be carried as a reproducible patch applied by the dependency-preparation script, or as a deliberate submodule revision change. Do not silently edit a transient CI checkout.
+The upstream source is a Git submodule pinned by this repository; its files are not ordinary tracked files in the parent repository. The implementation is carried as a reproducible patch applied by the dependency-preparation script.
