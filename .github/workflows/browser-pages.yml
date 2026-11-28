@@ -154,8 +154,10 @@ jobs:
       - name: Publish BMW viewer smoke-test screenshot
         uses: actions/upload-artifact@v4
         with:
-          name: BMW-M5-F90-browser-smoke-test
-          path: bmw-viewer-smoke.png
+          name: Franklin-BMW-drive-scene-smoke-test
+          path: |
+            bmw-viewer-smoke.png
+            franklin-bmw-drive-test.png
           if-no-files-found: error
           retention-days: 14
 
