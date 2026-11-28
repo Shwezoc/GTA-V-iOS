@@ -71,7 +71,7 @@ if (args.Length > 0 && args[0] == "--pack-bmw-dlc")
     foreach (var name in new[] { "bmwm5f90.yft", "bmwm5f90.ytd", "bmwm5f90_hi.yft" })
         AddFile(vehicleRpf.Root, Path.Combine(vehicleSource, name), name);
 
-    var check = new RpfFile(output, Path.GetFileName(output));
+    var check = new RpfFile(dlcOutputPath, Path.GetFileName(dlcOutputPath));
     check.ScanStructure(null, null);
     if (!string.IsNullOrEmpty(check.LastError))
         throw new InvalidDataException("Packed DLC RPF failed CodeWalker scan: " + check.LastError);
@@ -90,8 +90,8 @@ if (args.Length > 0 && args[0] == "--pack-bmw-dlc")
     var report = new
     {
         status = "pass",
-        output = Path.GetFileName(output),
-        bytes = new FileInfo(output).Length,
+        output = Path.GetFileName(dlcOutputPath),
+        bytes = new FileInfo(dlcOutputPath).Length,
         rpfVersion = "RPF7",
         encryption = "OPEN",
         archiveCount = archives.Length,
