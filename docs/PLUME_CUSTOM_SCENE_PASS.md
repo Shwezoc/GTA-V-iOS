@@ -86,3 +86,16 @@ Do not call this milestone complete until:
 ## Verified Plume depth API
 
 The pinned `plume_render_interface_types.h` defines `RenderTextureDesc::DepthTarget(...)`, `RenderFormat::D32_FLOAT`, `RenderFramebufferDesc::depthAttachment`, and the pipeline fields `depthEnabled`, `depthWriteEnabled`, `depthFunction`, and `depthTargetFormat`. The command-list interface exposes `clearDepthStencil(...)`. These are present in the pinned API; actual D32 support and the required transition/layout behavior still need to be validated on the iOS MoltenVK device.
+
+
+## Shader build integration verified in Plume
+
+The pinned Plume revision provides CMake helpers `plume_compile_vertex_shader` and `plume_compile_pixel_shader`. Its cube example invokes these helpers on HLSL source files; the helpers produce backend-specific shader blobs (SPIR-V, DXIL, and Metal where applicable) that are included by the C++ example. The native RAGE renderer's current shader directory and build target must be extended to compile the custom pass shaders through the same helpers (or an equivalent existing upstream shader-generation path). Do not hard-code a SPIR-V-only shader into an Apple Metal runtime.
+
+The cube example's CMake target is an example executable and is not linked into the RAGE runtime. Copying its source file alone is insufficient: the actual native renderer target must own the shader-generation commands, include paths, shader blobs, and Plume resources.
+
+## Render-target sequencing detail
+
+The existing RAGE present framebuffer is currently created with a color attachment only. Add a depth attachment per swapchain image when the framebuffer is created. Keep the guest front-buffer blit first; only clear the depth attachment immediately before the custom geometry draw, so the game's color image remains the background. The custom pass must set viewport/scissor and bind the framebuffer/pipeline explicitly, then leave the framebuffer in the state expected by the existing counter/menu and PRESENT transition.
+
+This is an integration requirement, not yet a source-code patch. The upstream source is a Git submodule pinned by this repository; its files are not ordinary tracked files in the parent repository. Any implementation must therefore be carried as a reproducible patch applied by the dependency-preparation script, or as a deliberate submodule revision change. Do not silently edit a transient CI checkout.
