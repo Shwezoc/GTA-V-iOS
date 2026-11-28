@@ -108,67 +108,81 @@ jobs:
         working-directory: upstream/gtav-recomp
         run: cmake --build build/ios-shell --parallel 3
 
-      - name: Collect runtime shell (not a playable game)
+      - name: Assemble upstream GTAV.app shell and local-build interface
         run: |
           set -euo pipefail
-          mkdir -p rage-ios-runtime
-          GTAV_BIN="$(find upstream/gtav-recomp/build/ios-shell -type f -name gtav_fast -perm -111 -print -quit)"
-          REX_RUNTIME="$(find upstream/gtav-recomp/rexglue-sdk/out/install/ios-arm64 -type f -name librexruntime.dylib -print -quit)"
-          REX_GPU="$(find upstream/gtav-recomp/rexglue-sdk/out/install/ios-arm64 -type f -name librexgpu-xenos.dylib -print -quit)"
-          test -n "$GTAV_BIN" || { echo "ERROR: gtav_fast executable was not produced"; find upstream/gtav-recomp/build/ios-shell -maxdepth 4 -type f -print; exit 1; }
-          test -n "$REX_RUNTIME" || { echo "ERROR: librexruntime.dylib was not installed"; find upstream/gtav-recomp/rexglue-sdk/out/install/ios-arm64 -maxdepth 5 -type f -print; exit 1; }
-          test -n "$REX_GPU" || { echo "ERROR: librexgpu-xenos.dylib was not installed"; find upstream/gtav-recomp/rexglue-sdk/out/install/ios-arm64 -maxdepth 5 -type f -print; exit 1; }
-          cp "$GTAV_BIN" rage-ios-runtime/gtav
-          cp "$REX_RUNTIME" rage-ios-runtime/
-          cp "$REX_GPU" rage-ios-runtime/
+          UPSTREAM="$GITHUB_WORKSPACE/upstream/gtav-recomp"
+          MVK_FRAMEWORK="$RUNNER_TEMP/moltenvk-framework"
           test -f "$MOLTENVK_BINARY" || { echo "ERROR: MoltenVK iOS binary is missing"; exit 1; }
-          cp "$MOLTENVK_BINARY" rage-ios-runtime/libMoltenVK.dylib
-          cp "$RUNNER_TEMP/moltenvk-output/MOLTENVK-LICENSE.txt" rage-ios-runtime/
+          mkdir -p "$MVK_FRAMEWORK"
+          cp "$MOLTENVK_BINARY" "$MVK_FRAMEWORK/MoltenVK"
+          # The upstream packaging script consumes the pinned SDK's license path.
+          test -f "$UPSTREAM/rexglue-sdk/thirdparty/moltenvk/LICENSE"
+          MOLTENVK_FW="$MVK_FRAMEWORK" \
+          GTAV_SHELL="$UPSTREAM/build/ios-shell/gtav_fast.app/gtav_fast" \
+          GTAV_IOS_SDK="$UPSTREAM/rexglue-sdk/out/install/ios-arm64" \
+          GTAV_IOS_INTERFACE="$UPSTREAM/build/ios-shell/game_interface" \
+            "$UPSTREAM/tools/ios/make_shell.sh" "$GITHUB_WORKSPACE/rage-ios-runtime"
 
-          # Audit the actual iOS binaries before publishing the no-game-data artifact.
+          APP="rage-ios-runtime/GTAV.app"
+          test -s "$APP/gtav"
+          test -s "$APP/librexruntime.dylib"
+          test -s "$APP/librexgpu-xenos.dylib"
+          test -s "$APP/libMoltenVK.dylib"
+          test -s "$APP/Info.plist"
+          test -s rage-ios-runtime/interface/gtav_hooks.h
+          test -s rage-ios-runtime/interface/gtav_game.exports
+          test -s rage-ios-runtime/interface/gtav_game.undefs
+          test -s rage-ios-runtime/libSystem_ios.tbd
+          test -s rage-ios-runtime/LICENSES/MoltenVK.txt
+          test -s rage-ios-runtime/LICENSES/simde.txt
+          plutil -lint "$APP/Info.plist"
+
+          # Audit every shipped Mach-O binary and its loader paths.
           {
-            echo "=== Binary formats ==="
-            file rage-ios-runtime/gtav rage-ios-runtime/librexruntime.dylib rage-ios-runtime/librexgpu-xenos.dylib
+            echo "=== Bundle files ==="
+            find rage-ios-runtime -type f -maxdepth 5 -print | sort
             echo
-            echo "=== Architectures ==="
-            for binary in rage-ios-runtime/gtav rage-ios-runtime/librexruntime.dylib rage-ios-runtime/librexgpu-xenos.dylib; do
+            echo "=== Binary formats and architectures ==="
+            for binary in "$APP/gtav" "$APP/librexruntime.dylib" "$APP/librexgpu-xenos.dylib" "$APP/libMoltenVK.dylib"; do
+              file "$binary"
               archs="$(lipo -archs "$binary")"
               echo "$binary: $archs"
               case " $archs " in *" arm64 "*) ;; *) echo "ERROR: $binary is not arm64"; exit 1 ;; esac
             done
             echo
-            echo "=== MoltenVK architecture and dependencies ==="
-            lipo -archs rage-ios-runtime/libMoltenVK.dylib
-            otool -L rage-ios-runtime/libMoltenVK.dylib
-            echo
             echo "=== Executable dynamic dependencies ==="
-            otool -L rage-ios-runtime/gtav
+            otool -L "$APP/gtav"
             echo
-            echo "=== Runtime library dependencies ==="
-            otool -L rage-ios-runtime/librexruntime.dylib
-            otool -L rage-ios-runtime/librexgpu-xenos.dylib
+            echo "=== Runtime dynamic dependencies ==="
+            otool -L "$APP/librexruntime.dylib"
+            otool -L "$APP/librexgpu-xenos.dylib"
+            echo
+            echo "=== MoltenVK dynamic dependencies ==="
+            otool -L "$APP/libMoltenVK.dylib"
           } | tee rage-ios-runtime/BINARY-AUDIT.txt
 
-          otool -L rage-ios-runtime/gtav | grep -q 'gtav_game.dylib' || {
+          otool -L "$APP/gtav" | grep -q 'gtav_game.dylib' || {
             echo "ERROR: shell executable does not reference the expected separately generated game library"
             exit 1
           }
 
           cat > rage-ios-runtime/BUILD-STATUS.txt <<'EOF'
-          Upstream RAGE-compatible GTA V host and ReXGlue iOS runtime shell.
+          Upstream iOS GTAV.app shell assembled with upstream tools/ios/make_shell.sh.
           CPU compile target: ${{ matrix.cpu_target }}.
           apple-a13 is an experimental compatibility build, not an upstream-supported device guarantee.
-          This is NOT a playable GTA V IPA.
+          This is NOT a playable GTA V IPA and is intentionally unsigned.
           It includes the upstream iOS host shell, ReXGlue runtime libraries,
-          and an independently built open-source MoltenVK iOS library.
+          MoltenVK, Info.plist, game-library interface metadata, iOS linker stubs,
+          SIMDe headers, and third-party licenses.
           It contains no Rockstar game code, game data, generated game library,
-          game shaders, or app signing.
+          game shaders, provisioning profile, or app signing.
           A compatible device and locally supplied game data/build outputs are still required.
           EOF
 
-      - name: Upload unsigned runtime shell components
+      - name: Upload unsigned GTAV.app shell package (no game data)
         uses: actions/upload-artifact@v4
         with:
-          name: rage-ios-runtime-shell-${{ matrix.cpu_target }}-no-game-data
+          name: rage-ios-gtav-app-shell-${{ matrix.cpu_target }}-no-game-data
           path: rage-ios-runtime/
           if-no-files-found: error
