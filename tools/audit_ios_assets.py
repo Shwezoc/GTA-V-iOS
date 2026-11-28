@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit the GTA V-derived model artifacts intended for the lightweight iOS port."""
+"""Audit GTA V-derived native RAGE resources and interchange models for the lightweight iOS port."""
 from __future__ import annotations
 
 import argparse
@@ -42,7 +42,6 @@ def summarize(path: pathlib.Path) -> dict:
                 if position is not None:
                     triangles += accessors[position]["count"] // 3
     for accessor in gltf.get("accessors", []):
-        # POSITION accessors only; avoid counting joints, weights and animation channels.
         if accessor.get("type") == "VEC3":
             vertices += accessor.get("count", 0)
     image_bytes = 0
@@ -65,20 +64,35 @@ def summarize(path: pathlib.Path) -> dict:
     }
 
 
+def native_resource(path: pathlib.Path) -> dict:
+    data = path.read_bytes()
+    return {"file": path.name, "bytes": len(data), "rsc7": data[:4] == b"RSC7"}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--franklin-dir", type=pathlib.Path, required=True)
     parser.add_argument("--bmw-dir", type=pathlib.Path, required=True)
+    parser.add_argument("--bmw-native-dir", type=pathlib.Path, required=True)
     parser.add_argument("--output", type=pathlib.Path, required=True)
     args = parser.parse_args()
 
     franklin_glb = args.franklin_dir / "niko-animated" / "franklin_niko_animated.glb"
     franklin_report = args.franklin_dir / "niko-animated" / "franklin_niko_retarget_report.json"
     franklin_ycd = args.franklin_dir / "niko-animated" / "niko_franklin_retargeted.ycd"
+    franklin_native_root = args.franklin_dir / "mpr_franklin" / "stream"
+    franklin_native_paths = [franklin_native_root / name for name in
+                             ("franklin.ydd", "franklin.yft", "franklin.ymt", "franklin.ytd")]
     bmw_glb = args.bmw_dir / "bmwm5f90_hi.glb"
     bmw_report = args.bmw_dir / "bmwm5f90_hi-report.txt"
+    bmw_native_root = args.bmw_native_dir / "bmw-assets" / "x64" / "levels" / "gta5" / "vehicles" / "vehicles.rpf"
+    bmw_native_paths = [bmw_native_root / name for name in
+                        ("bmwm5f90.yft", "bmwm5f90.ytd", "bmwm5f90_hi.yft")]
+    bmw_meta_paths = [args.bmw_native_dir / "bmw-assets" / "common" / "data" / name
+                      for name in ("handling.meta", "carvariations.meta", "carcols.meta")]
 
-    required = [franklin_glb, franklin_report, franklin_ycd, bmw_glb, bmw_report]
+    required = [franklin_glb, franklin_report, franklin_ycd, bmw_glb, bmw_report,
+                *franklin_native_paths, *bmw_native_paths, *bmw_meta_paths]
     missing = [str(p) for p in required if not p.is_file() or p.stat().st_size == 0]
     if missing:
         raise SystemExit("Missing required asset outputs:\n" + "\n".join(missing))
@@ -87,19 +101,25 @@ def main() -> int:
     bmw = summarize(bmw_glb)
     retarget = json.loads(franklin_report.read_text(encoding="utf-8"))
     bmw_source_report = bmw_report.read_text(encoding="utf-8")
+    franklin_native = [native_resource(p) for p in franklin_native_paths + [franklin_ycd]]
+    bmw_native = [native_resource(p) for p in bmw_native_paths]
+    bmw_meta = [{"file": p.name, "bytes": p.stat().st_size} for p in bmw_meta_paths]
 
     checks = {
         "franklin_glb_has_skin": franklin["skins"] >= 1,
         "franklin_glb_has_four_animation_clips": franklin["animations"] >= 4,
         "franklin_retarget_has_no_unmatched_bones": retarget.get("ok") is True and not retarget.get("unmatchedBoneIds"),
-        "franklin_native_ycd_present": franklin_ycd.stat().st_size > 1000,
+        "franklin_native_resources_are_rsc7": all(item["rsc7"] for item in franklin_native),
         "bmw_glb_has_geometry": bmw["triangles"] > 10000,
         "bmw_report_has_no_missing_textures": "GLB missing textures: []" in bmw_source_report,
+        "bmw_native_resources_are_rsc7": all(item["rsc7"] for item in bmw_native),
+        "bmw_vehicle_meta_present": len(bmw_meta) == 3,
     }
     result = {
         "status": "pass" if all(checks.values()) else "fail",
         "checks": checks,
         "franklin": franklin,
+        "franklin_native_resources": franklin_native,
         "franklin_retarget": {
             "target_rig": retarget.get("targetRig"),
             "matched_bones": retarget.get("matchedBoneIds"),
@@ -107,10 +127,13 @@ def main() -> int:
             "clips": [clip.get("clip") for clip in retarget.get("clips", [])],
         },
         "bmw": bmw,
+        "bmw_native_resources": bmw_native,
+        "bmw_vehicle_meta": bmw_meta,
         "notes": [
-            "GLB files are interchange/test assets, not native RAGE runtime resources.",
+            "RSC7 signatures confirm native-format resource containers, not runtime compatibility by themselves.",
             "The Franklin YCD is a retargeted intermediate and still requires in-engine playback validation.",
             "The high-detail BMW is a source-quality asset; an A13-specific LOD and texture budget is still required.",
+            "GLB files are interchange/test assets, not proof that the upstream RAGE renderer loads GLB directly.",
         ],
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
