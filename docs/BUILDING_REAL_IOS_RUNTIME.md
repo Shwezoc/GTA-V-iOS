@@ -38,6 +38,20 @@ The static-recompilation code-generation step stages `default.xex` and TU `defau
 6. Build/sign an installable iOS package using an appropriate Apple signing/sideloading workflow.
 7. Test on hardware. The upstream baseline is A14 or newer; iPhone 11/A13 remains experimental.
 
+## Local generated-code filesystem audit
+
+After the private TU27 code-generation stage has produced the generated C/C++ source directory, the local build helper now runs:
+
+```sh
+python3 tools/audit_generated_filesystem.py /path/to/private/generated --output /path/to/private/output/GENERATED-FILESYSTEM-CANDIDATES.json
+```
+
+The scanner looks for candidate references to RAGE file-device types, RPF/packfile/resource archive symbols, mount/DLC registration terms, and common platform file-I/O calls. It records local source basenames, line numbers, categories and short matching lines so the owner can trace call sites and surrounding call graphs. The report stays on the local machine and must not be uploaded to GitHub Actions or committed.
+
+This is a triage aid, not a parser for the generated game's ABI and not proof that an RPF7 mount hook exists. A real adapter still requires tracing the candidate calls into their definitions, determining object layout/calling convention/lifecycle, and testing open/read/seek/close through the actual generated game code. No runtime API is guessed or added until those facts are established.
+
+Synthetic tests for this scanner run in the public pipeline audit; only synthetic fixtures are used there.
+
 ## Hard constraints
 
 - A successful shell compile is not a successful game-library build.
