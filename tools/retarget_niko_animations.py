@@ -37,6 +37,7 @@ def main():
     import bpy
     from Sollumz.sollumz_properties import SollumType
     from Sollumz.ycd.ycdimport import import_ycd
+    from Sollumz.ycd.ycdexport import export_ycd
     from Sollumz.tools.animationhelper import action_fcurves
 
     a = args_after_separator()
@@ -194,6 +195,12 @@ def main():
         (clip["durationSeconds"] for clip in clip_report), default=1.0
     ) * fps) + 1)
 
+    ycd_xml_out = os.path.join(out_dir, "niko_franklin_retargeted.ycd.xml")
+    if not export_ycd(dictionary, ycd_xml_out):
+        fail("Sollumz could not export the retargeted YCD dictionary to XML")
+    if not os.path.isfile(ycd_xml_out) or os.path.getsize(ycd_xml_out) < 1000:
+        fail("Sollumz YCD XML export is missing or unexpectedly small")
+
     blend_out = os.path.join(out_dir, "franklin_niko_animated.blend")
     bpy.ops.wm.save_as_mainfile(filepath=blend_out)
 
@@ -234,6 +241,7 @@ def main():
         "skinnedMeshObjects": [obj.name for obj in mesh_objects],
         "retargetedAnimations": retargeted,
         "clips": clip_report,
+        "ycdXml": {"path": os.path.basename(ycd_xml_out), "bytes": os.path.getsize(ycd_xml_out)},
         "glb": {
             "path": os.path.basename(glb_out),
             "bytes": os.path.getsize(glb_out),
