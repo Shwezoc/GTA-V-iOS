@@ -10,12 +10,12 @@ SPEC.loader.exec_module(mod)
 
 
 def fixture(path: Path, encryption=mod.OPEN):
-    # Two TOC records: root directory and one uncompressed binary file.
-    names = b"root\0hello.txt\0"
+    # RPF7 root directory uses an empty name at offset zero.
+    names = b"\0hello.txt\0"
     count = 2
     toc = bytearray()
     toc += struct.pack("<4I", 0, 0x7FFFFF00, 1, 1)
-    name_off = 5
+    name_off = 1
     packed = name_off | (1 << 40)
     toc += struct.pack("<QII", packed, 5, 0)
     data = bytearray(1024)
@@ -28,7 +28,7 @@ def fixture(path: Path, encryption=mod.OPEN):
 
 
 class Rpf7InspectorTests(unittest.TestCase):
-    def test_open_archive_indexes_file(self):
+    def test_open_archive_indexes_file_and_empty_root_name(self):
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / "test.rpf"
             fixture(p)
