@@ -37,7 +37,6 @@ for path in \
   "$UPSTREAM/tools/game_dll/build_game_dll.py" \
   "$UPSTREAM/tools/game_dll/libSystem_ios.tbd" \
   "$UPSTREAM/gtav/fs/gtav_pch.h" \
-  "$LLVM_BIN/clang++" \
   "$APP/gtav" \
   "$RUNTIME" \
   "$INTERFACE/gtav_hooks.h" \
@@ -54,12 +53,14 @@ if ! find "$GENERATED" -maxdepth 1 -type f -name 'gtav_recomp.*.cpp' -print -qui
   echo "ERROR: GENERATED_DIR has no gtav_recomp.*.cpp files."
   exit 4
 fi
-for name in gtav_init.cpp gtav_funcs.h; do
-  if ! find "$GENERATED" -maxdepth 1 -type f -name "$name" -print -quit | grep -q .; then
-    echo "ERROR: GENERATED_DIR is missing $name."
-    exit 4
-  fi
-done
+if ! find "$GENERATED" -maxdepth 1 -type f -name "gtav_init.cpp" -print -quit | grep -q .; then
+  echo "ERROR: GENERATED_DIR is missing gtav_init.cpp."
+  exit 4
+fi
+if ! find "$GENERATED" -maxdepth 1 -type f -name "gtav_funcs*.h" -print -quit | grep -q .; then
+  echo "ERROR: GENERATED_DIR is missing gtav_funcs*.h."
+  exit 4
+fi
 
 mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd)"
