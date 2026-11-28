@@ -73,6 +73,9 @@ apply_once "$PLUME" "$PATCHES/plume-gtav.patch"
 clone_pinned "https://github.com/hedge-dev/XenosRecomp.git" "$XENOS" "990d03b"
 apply_once "$XENOS" "$PATCHES/xenosrecomp-gtav.patch"
 
+# Add the first real Plume geometry draw to the upstream RAGE present pass.
+apply_once "$UPSTREAM" "$ROOT/patches/rage-scene-probe.patch"
+
 echo
 echo "Third-party source trees are pinned and patched."
 echo "This is dependency preparation only; it does not build the iOS runtime or include GTA V data."
