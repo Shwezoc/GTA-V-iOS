@@ -34,3 +34,14 @@ Current verified results remain separate:
 - Franklin/BMW in-game spawning, animation playback, vehicle handling and playable gameplay: **not verified**.
 
 Game-derived code, shader caches and proprietary game data remain user-local; do not upload them to public CI artifacts or commit them to this repository.
+
+
+## Loader confirmation
+
+A follow-up read of upstream `loader/src/install.cpp` and `loader/src/sources.cpp` confirms the boundary:
+
+- The install layout writes Disc 2 files and TU default.xexp under `data/game`, the TU's `update.rpf` under `data/update`, and Disc 1 install partitions under `data/user/.../545408A7/00000002`.
+- `sources.cpp` implements source readers for XDVDFS disc images, extracted disc folders and STFS packages (the TU input). These are installer/source readers, not an RPF7 runtime DLC packfile mount.
+- On iOS, `install.cpp` explicitly compiles with `LOADER_NO_SPAWN`; the phone performs data-copy/install stages only. Code generation and game compilation are not performed by the iOS setup screen.
+
+This narrows the next target: the RPF7 mount must be integrated on the **game runtime / generated-game filesystem side**, not into the iOS disc-import picker or the installer's XDVDFS/STFS readers.
