@@ -1,15 +1,31 @@
 using System.Text.Json;
 using CodeWalker.GameFiles;
 
-if (args.Length != 2)
+if (args.Length is < 2 or > 3)
 {
-    Console.Error.WriteLine("Usage: YcdInspector <input.ycd> <output-directory>");
+    Console.Error.WriteLine("Usage: YcdInspector <input.ycd> <output-directory> [ped-skeleton-template.json]");
     return 2;
 }
 
 var input = Path.GetFullPath(args[0]);
 var output = Path.GetFullPath(args[1]);
 Directory.CreateDirectory(output);
+
+Dictionary<int, (string Name, string? Parent)>? skeletonBones = null;
+string? skeletonName = null;
+if (args.Length == 3)
+{
+    using var skeletonDoc = JsonDocument.Parse(File.ReadAllText(Path.GetFullPath(args[2])));
+    var root = skeletonDoc.RootElement;
+    skeletonName = root.TryGetProperty("armature", out var armature) ? armature.GetString() : "unknown";
+    skeletonBones = root.GetProperty("bones").EnumerateArray().ToDictionary(
+        bone => bone.GetProperty("tag").GetInt32(),
+        bone => (
+            bone.GetProperty("name").GetString() ?? "UNKNOWN",
+            bone.TryGetProperty("parent", out var parent) && parent.ValueKind != JsonValueKind.Null
+                ? parent.GetString()
+                : null));
+}
 
 var raw = File.ReadAllBytes(input);
 if (raw.Length < 16 || System.Text.Encoding.ASCII.GetString(raw, 0, 4) != "RSC7")
@@ -40,6 +56,19 @@ var animations = (ycd.AnimMapEntries ?? Array.Empty<AnimationMapEntry>())
     {
         var animation = entry.Animation!;
         var tracks = animation.BoneIds?.data_items ?? Array.Empty<AnimationBoneId>();
+        var ids = tracks.Select(track => track.BoneId).Distinct().OrderBy(id => id).ToArray();
+        var mapped = skeletonBones == null
+            ? Array.Empty<object>()
+            : ids.Where(skeletonBones.ContainsKey)
+                .Select(id => (object)new
+                {
+                    id,
+                    name = skeletonBones[id].Name,
+                    parent = skeletonBones[id].Parent
+                }).ToArray();
+        var unmapped = skeletonBones == null
+            ? Array.Empty<int>()
+            : ids.Where(id => !skeletonBones.ContainsKey(id)).ToArray();
         return new
         {
             hash = entry.Hash.ToString(),
@@ -47,11 +76,22 @@ var animations = (ycd.AnimMapEntries ?? Array.Empty<AnimationMapEntry>())
             durationSeconds = animation.Duration,
             sequenceFrameLimit = animation.SequenceFrameLimit,
             boneTrackCount = tracks.Length,
-            boneIds = tracks.Select(track => track.BoneId).Distinct().OrderBy(id => id).ToArray(),
-            trackTypes = tracks.Select(track => track.Track).Distinct().OrderBy(id => id).ToArray()
+            uniqueBoneIdCount = ids.Length,
+            boneIds = ids,
+            mappedBoneCount = mapped.Length,
+            mappedBones = mapped,
+            unmappedBoneIds = unmapped
         };
     })
     .ToArray();
+
+var allIds = animations.SelectMany(animation => animation.boneIds).Distinct().OrderBy(id => id).ToArray();
+var mappedIds = skeletonBones == null
+    ? Array.Empty<int>()
+    : allIds.Where(skeletonBones.ContainsKey).ToArray();
+var unmappedIds = skeletonBones == null
+    ? Array.Empty<int>()
+    : allIds.Where(id => !skeletonBones.ContainsKey(id)).ToArray();
 
 var report = new
 {
@@ -60,11 +100,24 @@ var report = new
     rscVersion = BitConverter.ToUInt32(raw, 4),
     clips = new { count = clips.Length, items = clips },
     animations = new { count = animations.Length, items = animations },
+    skeletonCompatibility = skeletonBones == null ? null : new
+    {
+        skeleton = skeletonName,
+        skeletonBoneCount = skeletonBones.Count,
+        uniqueAnimationBoneIdCount = allIds.Length,
+        matchedBoneCount = mappedIds.Length,
+        unmatchedBoneCount = unmappedIds.Length,
+        coverage = allIds.Length == 0 ? 0.0 : Math.Round((double)mappedIds.Length / allIds.Length, 4),
+        mappedBones = mappedIds.Select(id => new { id, name = skeletonBones[id].Name, parent = skeletonBones[id].Parent }).ToArray(),
+        unmappedBoneIds = unmappedIds
+    },
     xml = Path.GetFileName(xmlPath),
     notes = new[]
     {
-        "Bone IDs are decoded animation track identifiers, not yet mapped to a specific ped skeleton.",
-        "Compatibility with Franklin must be checked against the actual target skeleton hierarchy."
+        "Bone IDs are decoded animation track identifiers.",
+        skeletonBones == null
+            ? "No target skeleton template was supplied; compatibility was not evaluated."
+            : "Bone IDs were matched by exact GTA bone tag against the supplied target skeleton template. This validates identifiers, not runtime playback or retargeted motion."
     }
 };
 
@@ -75,6 +128,9 @@ Console.WriteLine(JsonSerializer.Serialize(new
     input = Path.GetFileName(input),
     clips = clips.Length,
     animations = animations.Length,
+    skeleton = skeletonName,
+    matchedBones = mappedIds.Length,
+    unmatchedBones = unmappedIds.Length,
     xml = xmlPath,
     report = jsonPath
 }));
