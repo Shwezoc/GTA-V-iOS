@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       archive_url:
-        description: Direct HTTPS URL to the ZIP containing Franklin OBJ, MTL and textures
+        description: HTTPS download link to ZIP (Dropbox direct link or Google Drive share link)
         required: true
         type: string
       model_height:
@@ -35,17 +35,29 @@ jobs:
             *) echo "Only HTTPS archive URLs are accepted"; exit 2 ;;
           esac
           mkdir -p work/input work/unpacked work/output
-          git clone --depth 1 https://github.com/tekru-labs/swish-dl.git /tmp/swish-dl
-          cd /tmp/swish-dl
-          npm install --omit=dev
-          node index.js "$ARCHIVE_URL" --output "$GITHUB_WORKSPACE/work/unpacked"
-          cd "$GITHUB_WORKSPACE"
+          mkdir -p /tmp/franklin-transfer
+          if [[ "$ARCHIVE_URL" == *"drive.google.com"* ]]; then
+            python3 -m pip install --user --disable-pip-version-check gdown
+            "$HOME/.local/bin/gdown" --fuzzy "$ARCHIVE_URL" -O /tmp/franklin-transfer/franklin-package.zip
+          else
+            curl --fail --location --retry 3 --retry-all-errors \
+              --user-agent "Mozilla/5.0" \
+              "$ARCHIVE_URL" -o /tmp/franklin-transfer/franklin-package.zip
+          fi
           python3 - <<'PY'
           import pathlib, zipfile
-          archives = list(pathlib.Path("work/unpacked").glob("*.zip"))
-          if len(archives) != 1:
-              raise SystemExit(f"Expected one SwissTransfer ZIP, found {len(archives)}")
-          archive = archives[0]
+          archive = pathlib.Path("/tmp/franklin-transfer/franklin-package.zip")
+          if not archive.is_file() or archive.stat().st_size < 1000:
+              raise SystemExit("Download did not produce a valid-sized ZIP file")
+          if not zipfile.is_zipfile(archive):
+              head = archive.read_bytes()[:200].decode("utf-8", "replace")
+              raise SystemExit("Downloaded response is not a ZIP archive; check direct-download permissions. Response starts with: " + repr(head))
+          print("FRANKLIN_ARCHIVE_DOWNLOADED", archive.stat().st_size, "bytes")
+          PY
+          cp /tmp/franklin-transfer/franklin-package.zip work/unpacked/franklin-package.zip
+          python3 - <<'PY'
+          import pathlib, zipfile
+          archive = pathlib.Path("work/unpacked/franklin-package.zip")
           root = pathlib.Path("work/unpacked").resolve()
           with zipfile.ZipFile(archive) as z:
               bad = z.testzip()
