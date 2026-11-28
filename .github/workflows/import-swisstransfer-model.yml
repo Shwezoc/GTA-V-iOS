@@ -16,16 +16,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Resolve transfer through the real SwissTransfer web client
+      - name: Open SwissTransfer and download the archive in Chromium
         env:
           TRANSFER_URL: ${{ inputs.transfer_url }}
         run: |
           set -euo pipefail
-          node -v
           npm init -y >/dev/null 2>&1
           npm install --no-save playwright
           npx playwright install --with-deps chromium
-          cat > inspect-transfer.cjs <<'NODE'
+          cat > download-transfer.cjs <<'NODE'
           const { chromium } = require("playwright");
           const fs = require("fs");
           const url = process.env.TRANSFER_URL;
@@ -34,75 +33,34 @@ jobs:
               !/^\/(?:dl|d)\/[0-9a-f-]{36}\/?$/i.test(parsed.pathname)) {
             throw new Error("Only a valid SwissTransfer /dl/<UUID> or /d/<UUID> URL is accepted");
           }
-          const responses = [];
           (async () => {
             const browser = await chromium.launch({headless:true});
-            const page = await browser.newPage({userAgent:
-              "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"});
-            page.on("response", async response => {
-              try {
-                const ct = response.headers()["content-type"] || "";
-                const u = response.url();
-                if (/json/i.test(ct) || /\/api\//i.test(u)) {
-                  let body = "";
-                  try { body = await response.text(); } catch {}
-                  responses.push({url:u,status:response.status(),contentType:ct,body});
-                }
-              } catch {}
-            });
-            const response = await page.goto(url, {waitUntil:"domcontentloaded",timeout:60000});
-            await page.waitForTimeout(15000);
-            const pageInfo = {status:response?.status() ?? null, title:await page.title(),
-              text:(await page.locator("body").innerText().catch(()=> "")).slice(0,3000)};
+            const context = await browser.newContext({acceptDownloads:true});
+            const page = await context.newPage();
+            page.on("console", msg => console.log("BROWSER",msg.type(),msg.text()));
+            page.on("pageerror", err => console.log("PAGE_ERROR",err.message));
+            const response = await page.goto(url,{waitUntil:"domcontentloaded",timeout:60000});
+            console.log("TRANSFER_PAGE",JSON.stringify({status:response?.status(),title:await page.title()}));
+            await page.getByText(/Download all/i).first().waitFor({state:"visible",timeout:30000});
+            const downloadPromise = page.waitForEvent("download",{timeout:120000});
+            await page.getByText(/Download all/i).first().click();
+            const download = await downloadPromise;
+            const filename = download.suggestedFilename();
+            console.log("DOWNLOAD_STARTED",filename);
+            await download.saveAs("model.rar");
+            const failure = await download.failure();
+            if (failure) throw new Error("Browser download failed: "+failure);
+            const stat=fs.statSync("model.rar");
+            console.log("DOWNLOAD_SAVED",JSON.stringify({filename,bytes:stat.size}));
+            if (stat.size < 1000000) throw new Error("Downloaded file is unexpectedly small");
             await browser.close();
-            fs.writeFileSync("browser-capture.json", JSON.stringify({pageInfo,responses},null,2));
-            function walk(x, root, depth=0) {
-              if (!x || typeof x !== "object" || depth > 8) return null;
-              if (Array.isArray(x)) {
-                for (const v of x) { const r=walk(v,root,depth+1); if(r) return r; }
-                return null;
-              }
-              const files = x.files || x.container?.files || x.data?.container?.files;
-              const host = x.downloadHost || x.data?.downloadHost || x.data?.data?.downloadHost ||
-                           x.container?.downloadHost || x.data?.container?.downloadHost;
-              if (Array.isArray(files) && files.length && host) {
-                const f=files[0];
-                if (f.UUID && f.fileName) return {host,link:x.linkUUID || x.UUID || x.data?.linkUUID ||
-                  x.data?.UUID || new URL(url).pathname.split("/").filter(Boolean).pop(),
-                  fileUUID:f.UUID,fileName:f.fileName,size:f.fileSizeInBytes ?? null,
-                  containerUUID:x.containerUUID || x.container?.UUID || x.data?.containerUUID || null};
-              }
-              for (const v of Object.values(x)) { const r=walk(v,root,depth+1); if(r) return r; }
-              return null;
-            }
-            for (const r of responses) {
-              if (r.status < 200 || r.status >= 300) continue;
-              try { const found=walk(JSON.parse(r.body),r); if(found) {
-                fs.writeFileSync("resolved.json",JSON.stringify(found));
-                console.log("TRANSFER_METADATA_RESOLVED",JSON.stringify(found));
-                process.exit(0);
-              }} catch {}
-            }
-            console.log("PAGE_INFO",JSON.stringify(pageInfo));
-            console.log("CAPTURED_ENDPOINTS",JSON.stringify(responses.map(r=>({url:r.url,status:r.status,contentType:r.contentType,bodyStart:r.body.slice(0,700)})),null,2));
-            throw new Error("Browser opened the transfer page but no downloadable file metadata was found. See CAPTURED_ENDPOINTS above.");
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
-          node inspect-transfer.cjs
+          node download-transfer.cjs
 
-      - name: Download and validate the RAR archive
+      - name: Validate RAR and publish archive inventory
         run: |
           set -euo pipefail
-          HOST="$(node -p "require('./resolved.json').host")"
-          LINK="$(node -p "require('./resolved.json').link")"
-          FILE="$(node -p "require('./resolved.json').fileUUID")"
-          NAME="$(node -p "require('./resolved.json').fileName")"
-          case "$HOST" in *[!a-zA-Z0-9.-]*|"") echo "Invalid download host"; exit 1;; esac
-          case "$NAME" in *.rar|*.RAR) ;; *) echo "Expected a RAR archive, got: $NAME"; exit 1;; esac
-          curl --fail --location --retry 2 --retry-all-errors \
-            -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' \
-            -H 'Referer: https://www.swisstransfer.com/' \
-            --output model.rar "https://$HOST/api/download/$LINK/$FILE"
           sudo apt-get update -qq
           sudo apt-get install -y p7zip-full
           7z t model.rar
@@ -110,7 +68,6 @@ jobs:
           {
             echo "## SwissTransfer archive inspection"
             echo ""
-            echo "- Original name: $NAME"
             echo "- Downloaded bytes: $(stat -c%s model.rar)"
             echo "- SHA-256: $(sha256sum model.rar | cut -d' ' -f1)"
             echo ""
