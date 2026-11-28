@@ -53,3 +53,5 @@ body.menu-playing #main-menu,body.menu-playing #gtav-loading{display:none!import
 
 #gtav-skip{position:absolute;left:50%;top:calc(50% + 52px);transform:translateX(-50%);padding:11px 16px;border:1px solid #ffffff70;background:#171717;color:#fff;font:11px Chalet,Arial,sans-serif;letter-spacing:.5px}
 #gtav-skip[hidden]{display:none}
+
+a.menu-button-link{display:block;text-decoration:none;color:#f4f5f2}a.menu-button-link:focus-visible{outline:2px solid var(--menu-accent);outline-offset:2px}
