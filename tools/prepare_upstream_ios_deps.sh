@@ -73,6 +73,9 @@ apply_once "$PLUME" "$PATCHES/plume-gtav.patch"
 clone_pinned "https://github.com/hedge-dev/XenosRecomp.git" "$XENOS" "990d03b"
 apply_once "$XENOS" "$PATCHES/xenosrecomp-gtav.patch"
 
+# Keep the separate game-library build aligned with the selected A13/A14/A15 CPU target.
+apply_once "$UPSTREAM" "$ROOT/patches/ios-game-dylib-cpu-target.patch"
+
 echo
 echo "Third-party source trees are pinned and patched for the upstream iOS shell build."
 echo "This is dependency preparation only; it does not build the iOS runtime or include GTA V data."
