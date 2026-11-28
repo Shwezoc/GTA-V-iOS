@@ -22,7 +22,7 @@ index 0000000..0000000 100644
 +    COMMAND ${CMAKE_COMMAND} -E echo "#include \"native_scene_probe_vs.h\"" >> ${GTAV_NATIVE_SHADER_DIR}/native_blit_shaders.h
 +    COMMAND ${CMAKE_COMMAND} -E echo "#include \"native_scene_probe_ps.h\"" >> ${GTAV_NATIVE_SHADER_DIR}/native_blit_shaders.h
      COMMAND ${CMAKE_COMMAND} -E echo "#include \"native_digits_ps.h\"" >> ${GTAV_NATIVE_SHADER_DIR}/native_blit_shaders.h
-@@ -357,3 +357,3 @@ add_custom_command(
+@@ -343,3 +343,3 @@ add_custom_command(
              -Fh ${GTAV_NATIVE_SHADER_DIR}/native_diag_flat_ps.h ${GTAV_BLIT_HLSL}
 -    DEPENDS ${GTAV_BLIT_HLSL} ${GTAV_RECTLIST_HLSL} ${GTAV_MEMORY_HLSL} ${GTAV_MENU_HLSL}
 +    DEPENDS ${GTAV_BLIT_HLSL} ${GTAV_RECTLIST_HLSL} ${GTAV_MEMORY_HLSL} ${GTAV_MENU_HLSL} ${GTAV_SCENE_PROBE_HLSL}
