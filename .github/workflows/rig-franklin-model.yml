@@ -38,10 +38,14 @@ jobs:
             *) echo "Only HTTPS archive URLs are accepted"; exit 2 ;;
           esac
           mkdir -p work/input work/unpacked work/output
-          curl --fail --location --retry 3 --max-time 900 "$ARCHIVE_URL" -o /tmp/franklin-source.zip
+          mkdir -p /tmp/franklin-transfer
+          npx --yes swish-dl "$ARCHIVE_URL" --output /tmp/franklin-transfer
           python3 - <<'PY'
           import pathlib, zipfile
-          archive = pathlib.Path("/tmp/franklin-source.zip")
+          archives = list(pathlib.Path("/tmp/franklin-transfer").rglob("*.zip"))
+if len(archives) != 1:
+    raise SystemExit("Expected exactly one ZIP from SwissTransfer API; found " + str(len(archives)))
+archive = archives[0]
           root = pathlib.Path("work/unpacked").resolve()
           with zipfile.ZipFile(archive) as z:
               bad = z.testzip()
