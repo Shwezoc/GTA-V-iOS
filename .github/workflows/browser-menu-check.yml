@@ -34,6 +34,7 @@ jobs:
           test -s browser/assets/models/bmw-m5-f90/bmwm5f90_hi.glb
           test -s browser/assets/models/bmw-m5-f90/bmwm5f90_hi-preview.png
           test -s browser/vendor/three.module.js
+          test -s browser/vendor/three.core.js
           test -s browser/vendor/examples/jsm/loaders/GLTFLoader.js
           test -s browser/vendor/examples/jsm/utils/BufferGeometryUtils.js
           node --check browser/gtav-loading.js
