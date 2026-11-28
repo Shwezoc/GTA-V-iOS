@@ -43,7 +43,9 @@ The [iOS asset compatibility audit](.github/workflows/ios-asset-audit.yml) downl
 
 ## Native runtime status
 
-The `RAGE iOS Runtime Shell (no game data)` workflow has successfully compiled unsigned upstream host shells for both `apple-a14` and experimental `apple-a13` in [run 46098630311](https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46098630311). The build runs on a cloud macOS runner. The A13 result proves the host binaries can be compiled for that CPU target; it is **not** proof that GTA V launches or runs on iPhone 11.
+The `RAGE iOS Runtime Shell (no game data)` workflow has successfully compiled and packaged unsigned upstream host shells for both `apple-a14` and experimental `apple-a13` in [run 46117623893](https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46117623893). The build runs on cloud macOS runners. Both artifacts contain arm64 host/runtime binaries and the separate `gtav_game.dylib` load dependency, but intentionally omit the generated game library and game shaders. The A13 result proves only that the host components compile for that CPU target; it is **not** proof that GTA V launches or runs on iPhone 11.
+
+The local game-library helper now supports `IOS_CPU_TARGET=apple-a13` (experimental), `apple-a14` (default), or `apple-a15`, so the separately generated library can be compiled for the selected CPU target. This target-selection patch is covered by the [pipeline audit](https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46136237878); it has not yet been exercised with real game-generated source.
 
 The shell alone does not include:
 - the generated GTA V game library (`gtav_game.dylib`);
