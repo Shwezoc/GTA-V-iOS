@@ -55,9 +55,9 @@ jobs:
           try {
             $header = New-Object byte[] 4
             [void]$stream.Read($header, 0, 4)
-            $magic = [System.Text.Encoding]::ASCII.GetString($header)
+            $version = [System.BitConverter]::ToUInt32($header, 0)
           } finally { $stream.Dispose() }
-          if ($magic -ne "RPF7") { throw "Output archive does not have the RPF7 signature: $magic" }
+          if ($version -ne 0x52504637) { throw ("Output archive has an unexpected RPF version: 0x{0:X8}" -f $version) }
           $report = Get-Content "work/rpf-pack-report.json" -Raw | ConvertFrom-Json
           if ($report.status -ne "pass" -or -not $report.codeWalkerRoundTrip) {
             throw "CodeWalker RPF7 round-trip validation did not pass"
