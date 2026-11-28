@@ -62,6 +62,18 @@ Artifact from [run 46112567911](https://github.com/Shwezoc/GTA-V-iOS/actions/run
 
 The GLB files are interchange/test formats, not proof that the upstream RAGE renderer loads them directly. Keep the native RAGE resource path available for integration.
 
+## Native BMW RPF7 packaging
+
+The BMW native resources have now been assembled into a GTA V DLC-style RPF7 package on an ephemeral Windows CI runner and reopened with CodeWalker:
+
+- Run: [46118144551](https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46118144551)
+- Archive size: 48,361,472 bytes
+- 3 nested RPF archives, 21 resource entries and 18 tuning/mod-part YFT files
+- Base YFT/YTD, high-detail YFT and metadata all passed the structural round-trip check
+- Only the metadata report was retained; the generated DLC binary was deleted on the runner
+
+This is a native asset packaging milestone, not proof of game-side DLC mounting or vehicle spawning.
+
 ## Device compatibility
 
 The upstream documented iOS baseline is A14 or newer; its development notes identify an A15 iPhone 13 mini as the tested device. The user's iPhone 11 uses A13 and is below that baseline.
