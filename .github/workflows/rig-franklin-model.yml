@@ -26,6 +26,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   rig-franklin:
@@ -182,6 +183,9 @@ jobs:
           cp -R "$TEMP_DIR/gltf-blender-io/addons/io_scene_gltf2" "$ADDONS/io_scene_gltf2"
           test -f "$ADDONS/muto_ped_rig/bl/batch_worker.py"
           test -f "$ADDONS/Sollumz/__init__.py"
+          git clone --depth 1 --branch v4.2.0 https://github.com/KhronosGroup/glTF-Blender-IO.git "$TEMP_DIR/gltf-blender-io"
+          cp -R "$TEMP_DIR/gltf-blender-io/addons/io_scene_gltf2" "$ADDONS/io_scene_gltf2"
+          test -f "$ADDONS/io_scene_gltf2/__init__.py"
 
       - name: Enable add-ons and rig Franklin
         env:
@@ -225,6 +229,39 @@ jobs:
             "xml=$WORKSPACE_WIN/work/niko-decoded/move_m@wfire@nikowalk.ycd.xml" \
             "skeleton=$TEMP_WIN/mp_m_skeleton.json" \
             "out=$WORKSPACE_WIN/work/output/niko-animated"
+
+      - name: Download verified Niko YCD decode artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: niko-ycd-decoded-xml-and-bone-track-report
+          path: work/animation-input/niko
+          repository: Shwezoc/GTA-V-iOS
+          run-id: 46109067134
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Retarget Niko walk set onto rigged Franklin and export animated GLB
+        shell: bash
+        run: |
+          set -euo pipefail
+          TEMP_DIR="$(cygpath -u "$RUNNER_TEMP")"
+          WORKSPACE="$(cygpath -u "$GITHUB_WORKSPACE")"
+          BLENDER="$TEMP_DIR/blender/blender.exe"
+          BLEND="$WORKSPACE/work/output/franklin.blend"
+          NIKO_XML="$WORKSPACE/work/animation-input/niko/move_m@wfire@nikowalk.ycd.xml"
+          SKELETON="$TEMP_DIR/blender/5.2/scripts/addons/muto_ped_rig/data/template_mp_m.json"
+          OUT="$WORKSPACE/work/output/niko-animation"
+          test -s "$BLEND"
+          test -s "$NIKO_XML"
+          test -s "$SKELETON"
+          BLEND_WIN="$(cygpath -m "$BLEND")"
+          XML_WIN="$(cygpath -m "$NIKO_XML")"
+          SKELETON_WIN="$(cygpath -m "$SKELETON")"
+          OUT_WIN="$(cygpath -m "$OUT")"
+          "$BLENDER" --background             --python-expr "import sys,bpy; sys.path.insert(0, r'$TEMP_DIR/blender/5.2/scripts/addons'); bpy.utils.refresh_script_paths(); import Sollumz; bpy.ops.preferences.addon_enable(module='Sollumz'); bpy.ops.preferences.addon_enable(module='io_scene_gltf2'); print('RETARGET_ADDONS_READY')"             --python "$WORKSPACE_WIN/tools/retarget_niko_animations.py" --             "blend=$BLEND_WIN"             "xml=$XML_WIN"             "skeleton=$SKELETON_WIN"             "out=$OUT_WIN"
+          test -s "$OUT/franklin_niko_animated.glb"
+          test -s "$OUT/franklin_niko_animated.blend"
+          test -s "$OUT/franklin_niko_retarget_report.json"
+          cat "$OUT/franklin_niko_retarget_report.json"
 
       - name: Upload rigged GTA resource and diagnostic report
         if: always()
