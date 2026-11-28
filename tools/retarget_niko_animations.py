@@ -36,7 +36,7 @@ def glb_json(path):
 def main():
     import bpy
     from Sollumz.sollumz_properties import SollumType
-    from Sollumz.ycd.ycdimport import_ycd
+    from Sollumz.ycd.ycdimport import import_ycd
     from Sollumz.tools.animationhelper import action_fcurves
 
     a = args_after_separator()
