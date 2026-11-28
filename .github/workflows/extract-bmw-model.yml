@@ -1,0 +1,80 @@
+name: Extract BMW M5 F90 RAGE assets
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/extract-bmw-model.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  extract-bmw:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Download the already-published source artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: BMW-M5-F90-source-and-inventory
+          run-id: 46094691219
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          path: source-artifact
+
+      - name: Extract the original RAR package
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y p7zip-full
+          7z t source-artifact/model.rar
+          mkdir -p source
+          7z x -y -osource source-artifact/model.rar
+          test -s source/bmwm5f90/dlc.rpf
+          echo "DLC_RPF_BYTES=$(stat -c%s source/bmwm5f90/dlc.rpf)" >> "$GITHUB_STEP_SUMMARY"
+          sha256sum source/bmwm5f90/dlc.rpf | tee dlc-rpf.sha256
+
+      - name: Install the RAGE archive and resource tool
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 https://github.com/VIRUXE/rage-cli/releases/download/v0.29.0/rage-linux-x86_64 -o rage
+          chmod +x rage
+          ./rage --version
+
+      - name: Inspect and extract GTA V RPF resources
+        run: |
+          set -euo pipefail
+          ./rage info source/bmwm5f90/dlc.rpf | tee rpf-info.txt
+          ./rage tree source/bmwm5f90/dlc.rpf --depth 8 | tee rpf-tree.txt
+          ./rage extract source/bmwm5f90/dlc.rpf -o bmw-assets --recursive
+          find bmw-assets -type f -printf '%P\t%s bytes\n' | sort | tee extracted-files.txt
+          {
+            echo "## BMW M5 F90 RPF extraction"
+            echo ""
+            echo "### RPF metadata"
+            cat rpf-info.txt
+            echo ""
+            echo "### Extracted GTA V resources"
+            cat extracted-files.txt
+            echo ""
+            echo "YFT files: $(find bmw-assets -type f -iname '*.yft' | wc -l)"
+            echo "YDR files: $(find bmw-assets -type f -iname '*.ydr' | wc -l)"
+            echo "YTD files: $(find bmw-assets -type f -iname '*.ytd' | wc -l)"
+            echo "YBN files: $(find bmw-assets -type f -iname '*.ybn' | wc -l)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish extracted model resources and inspection reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: BMW-M5-F90-extracted-RAGE-assets
+          path: |
+            bmw-assets/
+            rpf-info.txt
+            rpf-tree.txt
+            extracted-files.txt
+            dlc-rpf.sha256
+          if-no-files-found: error
+          retention-days: 30
