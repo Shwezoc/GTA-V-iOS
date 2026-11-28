@@ -26,6 +26,7 @@ index 0000000..0000000 100644
 -    DEPENDS ${GTAV_BLIT_HLSL} ${GTAV_RECTLIST_HLSL} ${GTAV_MEMORY_HLSL} ${GTAV_MENU_HLSL}
 +    DEPENDS ${GTAV_BLIT_HLSL} ${GTAV_RECTLIST_HLSL} ${GTAV_MEMORY_HLSL} ${GTAV_MENU_HLSL} ${GTAV_SCENE_PROBE_HLSL}
      VERBATIM)
+
 diff --git a/gtav/src/native/backend.h b/gtav/src/native/backend.h
 index 0000000..0000000 100644
 --- a/gtav/src/native/backend.h
@@ -36,6 +37,7 @@ index 0000000..0000000 100644
 +  void DrawSceneProbe(plume::RenderCommandList* list, plume::RenderFormat target_format);
  
    // Draws `value` as an on-screen counter with its top-left corner at (x, y).
+
 diff --git a/gtav/src/native/backend.cpp b/gtav/src/native/backend.cpp
 index 0000000..0000000 100644
 --- a/gtav/src/native/backend.cpp
@@ -92,6 +94,7 @@ index 0000000..0000000 100644
 +}
 +
  void Backend::WriteDump() {
+
 diff --git a/gtav/src/native/renderer.cpp b/gtav/src/native/renderer.cpp
 index 0000000..0000000 100644
 --- a/gtav/src/native/renderer.cpp
@@ -128,6 +131,7 @@ index 0000000..0000000 100644
 @@ -1590,1 +1590,2 @@
    std::vector<std::unique_ptr<plume::RenderFramebuffer>> framebuffers_;
 +  std::vector<std::unique_ptr<plume::RenderTexture>> scene_probe_depth_;
+
 diff --git a/gtav/src/native/shaders/native_scene_probe.hlsl b/gtav/src/native/shaders/native_scene_probe.hlsl
 new file mode 100644
 index 0000000..0000000
