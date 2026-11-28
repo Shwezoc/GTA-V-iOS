@@ -17,7 +17,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Validate browser build
+      - name: Validate browser build and BMW RAGE model viewer
         run: |
           set -eu
           test -s browser/index.html
@@ -26,19 +26,21 @@ jobs:
           test -s browser/menu.js
           test -s browser/menu.css
           test -s browser/gtav-loading.js
-          test -s browser/assets/gtav-loading/README.md
-          node --check browser/gtav-loading.js
-          node --check browser/main.js
-          node --check browser/menu.js
           test -s browser/bmw-viewer.html
-          test -s browser/bmw-viewer.css
           test -s browser/bmw-viewer.js
+          test -s browser/bmw-viewer.css
+          test -s browser/assets/gtav-loading/README.md
+          test -s browser/assets/models/bmw-m5-f90/bmwm5f90_hi.glb
+          test -s browser/assets/models/bmw-m5-f90/bmwm5f90_hi-preview.png
           test -s browser/vendor/three.module.js
           test -s browser/vendor/examples/jsm/loaders/GLTFLoader.js
           test -s browser/vendor/examples/jsm/utils/BufferGeometryUtils.js
-          test -s browser/assets/models/bmw-m5-f90/bmwm5f90_hi.glb
-          node --check browser/bmw-viewer.js
+          node --check browser/gtav-loading.js
+          node --check browser/main.js
+          node --check browser/menu.js
+          node --input-type=module --check < browser/bmw-viewer.js
           touch browser/.nojekyll
+          echo "Browser lab and offline BMW M5 F90 GLB viewer validated."
       - name: Upload browser build
         uses: actions/upload-pages-artifact@v3
         with:
