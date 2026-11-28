@@ -40,7 +40,7 @@ Do not wire the package into the app by copying it into an arbitrary folder or b
 Current verified results remain separate:
 - RPF7 packaging and CodeWalker round-trip: previously passed.
 - iOS runtime shell CI: passed.
-- RPF7 structural inspector synthetic tests: rerun is in progress after correcting the fixture.
+- RPF7 structural inspector synthetic tests: passed (including the empty root-directory name case).
 - RPF7 mounting in the RAGE runtime: **not implemented / not verified**.
 - Franklin/BMW in-game spawning, animation playback, vehicle handling and playable gameplay: **not verified**.
 
