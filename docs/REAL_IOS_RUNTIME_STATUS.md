@@ -62,17 +62,18 @@ Artifact from [run 46112567911](https://github.com/Shwezoc/GTA-V-iOS/actions/run
 
 The GLB files are interchange/test formats, not proof that the upstream RAGE renderer loads them directly. Keep the native RAGE resource path available for integration.
 
-## Native BMW RPF7 packaging
+## Combined Franklin + BMW RPF7 packaging
 
-The BMW native resources have now been assembled into a GTA V DLC-style RPF7 package on an ephemeral Windows CI runner and reopened with CodeWalker:
+The selected native resources have now been assembled together into one GTA V DLC-style RPF7 package on an ephemeral Windows CI runner and reopened with CodeWalker:
 
-- Run: [46118144551](https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46118144551)
-- Archive size: 48,361,472 bytes
-- 3 nested RPF archives, 21 resource entries and 18 tuning/mod-part YFT files
-- Base YFT/YTD, high-detail YFT and metadata all passed the structural round-trip check
-- Only the metadata report was retained; the generated DLC binary was deleted on the runner
+- Run: [46118348542](https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46118348542)
+- Archive size: 51,657,728 bytes
+- 4 RPF archives and 26 resource entries
+- 3 BMW vehicle resources, 18 tuning/mod-part YFT resources and 5 Franklin ped/animation resources
+- Franklin is registered through `PED_METADATA_FILE`; the retargeted YCD is included as a native RSC7 resource
+- Only a 676-byte metadata report was retained; the generated DLC binary was deleted on the runner
 
-This is a native asset packaging milestone, not proof of game-side DLC mounting or vehicle spawning.
+This is a native asset-packaging milestone, not proof of game-side DLC mounting, Franklin spawning, animation playback or vehicle spawning. The YCD is packaged but not yet wired to the active movement clip set.
 
 ## Device compatibility
 
