@@ -25,8 +25,12 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Run local-tool synthetic tests
-        run: python3 -m unittest discover -s tools/tests -p "test_*.py" -v
+      - name: Run local-tool syntax checks and synthetic tests
+        run: |
+          set -euo pipefail
+          bash -n tools/build_local_ios_game_dylib.sh
+          python3 -m py_compile tools/audit_generated_filesystem.py tools/rpf7-inspect.py
+          python3 -m unittest discover -s tools/tests -p "test_*.py" -v
 
       - name: Verify upstream iOS build pipeline
         shell: bash
