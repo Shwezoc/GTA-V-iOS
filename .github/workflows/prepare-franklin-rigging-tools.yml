@@ -1,0 +1,51 @@
+name: Prepare Franklin rigging tools
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-rigging-tools:
+    name: Fetch and verify Muto Ped Rig 0.3.2
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Download pinned upstream release
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/rigging-tools
+          curl --fail --location --retry 3 \
+            "https://github.com/B7Kompirine/muto-ped-rig/releases/download/v0.3.2/muto_ped_rig-0.3.2.zip" \
+            --output dist/rigging-tools/muto_ped_rig-0.3.2.zip
+          test -s dist/rigging-tools/muto_ped_rig-0.3.2.zip
+
+      - name: Verify archive and record provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          unzip -t dist/rigging-tools/muto_ped_rig-0.3.2.zip
+          unzip -l dist/rigging-tools/muto_ped_rig-0.3.2.zip
+          sha256sum dist/rigging-tools/muto_ped_rig-0.3.2.zip | tee dist/rigging-tools/SHA256SUMS.txt
+          cat > dist/rigging-tools/PROVENANCE.txt <<'EOF'
+          Upstream: https://github.com/B7Kompirine/muto-ped-rig
+          Release: v0.3.2
+          Release tag commit: 3352c91
+          Asset: muto_ped_rig-0.3.2.zip
+          Requirements: Blender 4.2+ and Sollumz 2.9.0+
+          Add-on code license: GPL-3.0
+          Note: upstream data derived from GTA V files is not relicensed by the add-on code license.
+          This artifact is a rigging tool, not Franklin's original player_one skeleton or a rigged Franklin model.
+          EOF
+
+      - name: Upload verified tool package
+        uses: actions/upload-artifact@v4
+        with:
+          name: franklin-rigging-tools-muto-0.3.2
+          path: dist/rigging-tools/
+          if-no-files-found: error
+          retention-days: 30
