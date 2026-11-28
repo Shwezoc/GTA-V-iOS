@@ -79,5 +79,5 @@ grep -q "DrawSceneProbe" "$UPSTREAM/gtav/src/native/backend.cpp"
 grep -q "scene_probe_depth_" "$UPSTREAM/gtav/src/native/renderer.cpp"
 
 echo
-echo "Third-party source trees are pinned and patched."
+echo "Third-party source trees are pinned and patched; RAGE scene probe patch syntax checked before apply."
 echo "This is dependency preparation only; it does not build the iOS runtime or include GTA V data."
