@@ -22,7 +22,7 @@ index 0000000..0000000 100644
 +    COMMAND ${CMAKE_COMMAND} -E echo "#include \"native_scene_probe_vs.h\"" >> ${GTAV_NATIVE_SHADER_DIR}/native_blit_shaders.h
 +    COMMAND ${CMAKE_COMMAND} -E echo "#include \"native_scene_probe_ps.h\"" >> ${GTAV_NATIVE_SHADER_DIR}/native_blit_shaders.h
      COMMAND ${CMAKE_COMMAND} -E echo "#include \"native_digits_ps.h\"" >> ${GTAV_NATIVE_SHADER_DIR}/native_blit_shaders.h
-@@ -357,2 +357,2 @@ add_custom_command(
+@@ -357,3 +357,3 @@ add_custom_command(
 -    DEPENDS ${GTAV_BLIT_HLSL} ${GTAV_RECTLIST_HLSL} ${GTAV_MEMORY_HLSL} ${GTAV_MENU_HLSL}
 +    DEPENDS ${GTAV_BLIT_HLSL} ${GTAV_RECTLIST_HLSL} ${GTAV_MEMORY_HLSL} ${GTAV_MENU_HLSL} ${GTAV_SCENE_PROBE_HLSL}
      VERBATIM)
@@ -30,7 +30,7 @@ diff --git a/gtav/src/native/backend.h b/gtav/src/native/backend.h
 index 0000000..0000000 100644
 --- a/gtav/src/native/backend.h
 +++ b/gtav/src/native/backend.h
-@@ -79,3 +79,5 @@ class Backend {
+@@ -79,4 +79,6 @@ class Backend {
    void Blit(plume::RenderCommandList* list, uint32_t descriptor, plume::RenderFormat target_format);
 +  // Diagnostic proof that custom geometry can be drawn by Plume in the RAGE present pass.
 +  void DrawSceneProbe(plume::RenderCommandList* list, plume::RenderFormat target_format);
@@ -83,7 +83,7 @@ index 0000000..0000000 100644
 +  }
 +
 +  // FPS counter (PSDigits) over the bound framebuffer, top-left corner at (x, y).
-@@ -6107,4 +6107,8 @@ void Backend::Blit(RenderCommandList* list, uint32_t descriptor, RenderFormat target_format) {
+@@ -6107,5 +6107,9 @@ void Backend::Blit(RenderCommandList* list, uint32_t descriptor, RenderFormat target_format) {
    impl_->BlitTo(list, descriptor, target_format);
  }
  
@@ -125,7 +125,7 @@ index 0000000..0000000 100644
 +      scene_probe_depth_.push_back(std::move(depth));
        framebuffers_.push_back(device_->createFramebuffer(desc));
      }
-@@ -1590,1 +1590,2 @@
+@@ -1590,2 +1590,3 @@
    std::vector<std::unique_ptr<plume::RenderFramebuffer>> framebuffers_;
 +  std::vector<std::unique_ptr<plume::RenderTexture>> scene_probe_depth_;
 diff --git a/gtav/src/native/shaders/native_scene_probe.hlsl b/gtav/src/native/shaders/native_scene_probe.hlsl
