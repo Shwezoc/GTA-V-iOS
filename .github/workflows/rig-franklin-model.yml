@@ -215,6 +215,7 @@ jobs:
           ADDONS="$TEMP_DIR/blender/5.2/scripts/addons"
           ADDONS_WIN="$(cygpath -m "$ADDONS")"
           WORKSPACE_WIN="$(cygpath -m "$WORKSPACE")"
+          TEMP_WIN="$(cygpath -m "$TEMP_DIR")"
           export CI=true
           export PYTHONPATH="$ADDONS${PYTHONPATH:+:$PYTHONPATH}"
           "$TEMP_DIR/blender/blender.exe" --background \
