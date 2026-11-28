@@ -243,6 +243,28 @@ jobs:
           print("FRANKLIN_NIKO_ANIMATED_GLB_VALID", json.dumps(glb))
           PY
 
+      - name: Pack retargeted clips into native RSC7 YCD and round-trip verify
+        shell: pwsh
+        run: |
+          $out = "$env:GITHUB_WORKSPACE/work/output/niko-animated"
+          $xml = Join-Path $out "niko_franklin_retargeted.ycd.xml"
+          $ycd = Join-Path $out "niko_franklin_retargeted.ycd"
+          $roundTrip = Join-Path $out "roundtrip"
+          if (-not (Test-Path $xml)) { throw "Sollumz retargeted YCD XML was not exported" }
+          dotnet run --configuration Release --project tools/ycd-inspector/YcdInspector.csproj -- --pack-ycd $xml $ycd
+          if ($LASTEXITCODE -ne 0) { throw "CodeWalker failed to pack native RSC7 YCD" }
+          if (-not (Test-Path $ycd)) { throw "Native YCD output file is missing" }
+          dotnet run --configuration Release --project tools/ycd-inspector/YcdInspector.csproj -- $ycd $roundTrip "$env:RUNNER_TEMP/mp_m_skeleton.json"
+          if ($LASTEXITCODE -ne 0) { throw "Native YCD round-trip decode failed" }
+          $reportPath = Join-Path $roundTrip "niko_franklin_retargeted.ycd.report.json"
+          $report = Get-Content $reportPath -Raw | ConvertFrom-Json
+          if ($report.clips.count -ne 5) { throw "Expected 5 clips after native YCD round-trip, got $($report.clips.count)" }
+          if ($report.animations.count -ne 4) { throw "Expected 4 animations after native YCD round-trip, got $($report.animations.count)" }
+          if ($report.skeletonCompatibility.matchedBoneCount -ne 106 -or $report.skeletonCompatibility.unmatchedBoneCount -ne 0) {
+            throw "Native YCD bone compatibility validation failed"
+          }
+          Write-Host "NATIVE_RSC7_YCD_VALID bytes=$((Get-Item $ycd).Length) clips=$($report.clips.count) animations=$($report.animations.count) matchedBones=$($report.skeletonCompatibility.matchedBoneCount)"
+
       - name: Upload rigged GTA resource and diagnostic report
         if: always()
         uses: actions/upload-artifact@v4
