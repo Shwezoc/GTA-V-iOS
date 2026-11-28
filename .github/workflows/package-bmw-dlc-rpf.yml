@@ -1,0 +1,74 @@
+name: Package BMW M5 F90 as native GTA V DLC RPF7
+
+on:
+  push:
+    branches: [minimal-runtime]
+    paths:
+      - ".github/workflows/package-bmw-dlc-rpf.yml"
+      - "tools/ycd-inspector/Program.cs"
+      - "tools/ycd-inspector/YcdInspector.csproj"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  package-and-verify:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Download original BMW M5 F90 RAGE resources
+        uses: actions/download-artifact@v4
+        with:
+          name: BMW-M5-F90-extracted-RAGE-assets
+          run-id: 46094904611
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          path: work/bmw-source
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Fetch pinned CodeWalker RPF writer and reader
+        shell: pwsh
+        run: |
+          git clone https://github.com/dexyfex/CodeWalker.git third_party/CodeWalker
+          git -C third_party/CodeWalker checkout 485d56bec00262ed7fa472261cce7bbc6202b96e
+          dotnet build tools/ycd-inspector/YcdInspector.csproj --configuration Release
+
+      - name: Build native BMW DLC RPF7 and round-trip verify with CodeWalker
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force -Path work/out | Out-Null
+          $dll = "tools/ycd-inspector/bin/Release/net8.0/YcdInspector.dll"
+          dotnet $dll --pack-bmw-dlc work/bmw-source work/out/dlc.rpf |
+            Out-File -FilePath work/rpf-pack-report.json -Encoding utf8
+          if (-not (Test-Path "work/out/dlc.rpf")) { throw "DLC RPF7 output is missing" }
+          $stream = [System.IO.File]::OpenRead("work/out/dlc.rpf")
+          try {
+            $header = New-Object byte[] 4
+            [void]$stream.Read($header, 0, 4)
+            $magic = [System.Text.Encoding]::ASCII.GetString($header)
+          } finally { $stream.Dispose() }
+          if ($magic -ne "RPF7") { throw "Output archive does not have the RPF7 signature: $magic" }
+          $report = Get-Content "work/rpf-pack-report.json" -Raw | ConvertFrom-Json
+          if ($report.status -ne "pass" -or -not $report.codeWalkerRoundTrip) {
+            throw "CodeWalker RPF7 round-trip validation did not pass"
+          }
+          Write-Host "BMW_DLC_RPF7_VALID bytes=$($report.bytes) resources=$($report.resourceCount) modParts=$($report.modPartCount)"
+          Remove-Item "work/out/dlc.rpf" -Force
+
+      - name: Upload metadata-only RPF7 validation report
+        uses: actions/upload-artifact@v4
+        with:
+          name: bmw-m5-f90-rpf7-validation-report
+          path: work/rpf-pack-report.json
+          if-no-files-found: error
+          retention-days: 30
