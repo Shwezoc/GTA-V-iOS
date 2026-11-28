@@ -19,7 +19,7 @@ if (args.Length == 3)
     var root = skeletonDoc.RootElement;
     skeletonName = root.TryGetProperty("armature", out var armature) ? armature.GetString() : "unknown";
     skeletonBones = root.GetProperty("bones").EnumerateArray().ToDictionary(
-        bone => bone.GetProperty("tag").GetInt32(),
+        bone => bone.GetProperty("tag").GetUInt16(),
         bone => (
             bone.GetProperty("name").GetString() ?? "UNKNOWN",
             bone.TryGetProperty("parent", out var parent) && parent.ValueKind != JsonValueKind.Null
@@ -67,7 +67,7 @@ var animations = (ycd.AnimMapEntries ?? Array.Empty<AnimationMapEntry>())
                     parent = skeletonBones[id].Parent
                 }).ToArray();
         var unmapped = skeletonBones == null
-            ? Array.Empty<int>()
+            ? Array.Empty<ushort>()
             : ids.Where(id => !skeletonBones.ContainsKey(id)).ToArray();
         return new
         {
@@ -90,7 +90,7 @@ var mappedIds = skeletonBones == null
     ? Array.Empty<int>()
     : allIds.Where(skeletonBones.ContainsKey).ToArray();
 var unmappedIds = skeletonBones == null
-    ? Array.Empty<int>()
+    ? Array.Empty<ushort>()
     : allIds.Where(id => !skeletonBones.ContainsKey(id)).ToArray();
 
 var report = new
