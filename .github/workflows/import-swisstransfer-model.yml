@@ -65,6 +65,9 @@ jobs:
           sudo apt-get install -y p7zip-full
           7z t model.rar
           7z l -slt model.rar > archive-list.txt
+          echo "=== ARCHIVE INVENTORY ==="
+          cat archive-list.txt
+          echo "=== END ARCHIVE INVENTORY ==="
           {
             echo "## SwissTransfer archive inspection"
             echo ""
@@ -76,3 +79,13 @@ jobs:
             sed -n '1,240p' archive-list.txt
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish source archive and inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: BMW-M5-F90-source-and-inventory
+          path: |
+            model.rar
+            archive-list.txt
+          if-no-files-found: error
+          retention-days: 30
