@@ -35,10 +35,17 @@ jobs:
             *) echo "Only HTTPS archive URLs are accepted"; exit 2 ;;
           esac
           mkdir -p work/input work/unpacked work/output
-          curl --fail --location --retry 3 --max-time 900 "$ARCHIVE_URL" -o /tmp/franklin-source.zip
+          git clone --depth 1 https://github.com/tekru-labs/swish-dl.git /tmp/swish-dl
+          cd /tmp/swish-dl
+          npm install --omit=dev
+          node index.js "$ARCHIVE_URL" --output "$GITHUB_WORKSPACE/work/unpacked"
+          cd "$GITHUB_WORKSPACE"
           python3 - <<'PY'
           import pathlib, zipfile
-          archive = pathlib.Path("/tmp/franklin-source.zip")
+          archives = list(pathlib.Path("work/unpacked").glob("*.zip"))
+          if len(archives) != 1:
+              raise SystemExit(f"Expected one SwissTransfer ZIP, found {len(archives)}")
+          archive = archives[0]
           root = pathlib.Path("work/unpacked").resolve()
           with zipfile.ZipFile(archive) as z:
               bad = z.testzip()
