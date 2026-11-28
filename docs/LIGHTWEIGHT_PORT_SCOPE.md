@@ -48,13 +48,14 @@ Artifact: `BMW-M5-F90-GLB-and-previews` from workflow run [46112567911](https://
 
 The `iOS GTA V asset compatibility audit` workflow downloads these existing artifacts and checks their structure without committing the proprietary-derived binary assets into the public repository.
 
-### Native BMW DLC packaging proof
+### Combined Franklin + BMW mobile-slice DLC packaging proof
 
-- Workflow: [Package BMW M5 F90 as native GTA V DLC RPF7](https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46118144551).
-- CodeWalker created and reopened a 48,361,472-byte RPF7 DLC package from the supplied BMW resources.
-- Round-trip scan found 3 RPF archives, 21 native resource entries and all 18 tuning/mod-part YFT resources; the base vehicle YFT/YTD and high-detail YFT were present.
-- CI uploaded only a 535-byte metadata report. The generated 48 MB DLC binary was deleted on the ephemeral runner and was not published as a public artifact.
-- This validates RPF7 packaging and CodeWalker parsing, **not** in-game DLC mounting or successful vehicle spawning.
+- Workflow: [Package Franklin + BMW mobile slice as native GTA V DLC RPF7](https://github.com/Shwezoc/GTA-V-iOS/actions/runs/46118348542).
+- CodeWalker created and reopened a 51,657,728-byte RPF7 package containing both selected game resources.
+- Round-trip scan found 4 RPF archives and 26 native resource entries: 3 BMW vehicle resources, 18 BMW tuning/mod-part YFT resources, and 5 Franklin ped/animation resources.
+- The package registers Franklin through `PED_METADATA_FILE` and includes the Franklin model files plus the retargeted YCD.
+- CI retained only a 676-byte metadata report. The generated DLC binary was deleted on the ephemeral runner and was not published as a public artifact.
+- This validates RPF7 packaging and CodeWalker parsing, **not** in-game DLC mounting, Franklin spawning, animation playback or vehicle spawning. The current `peds.meta` still points at its existing generic movement set; wiring the retargeted YCD into the live animation path remains a separate task.
 
 ## Runtime strategy
 
