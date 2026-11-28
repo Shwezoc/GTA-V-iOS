@@ -38,9 +38,10 @@ The pinned Plume `examples/triangle/main.cpp` and `examples/cube/main.cpp` demon
 
 ### Stage 2 — depth-tested scene
 
-- Give each swapchain image a matching depth texture.
-- Attach the depth texture to its present framebuffer.
-- Add a depth-enabled pipeline and clear depth at the start of the custom pass.
+- Give each swapchain image a matching depth texture using Plume's `RenderTextureDesc::DepthTarget(width, height, RenderFormat::D32_FLOAT)` (confirm format support on the target device before relying on it).
+- Attach the depth texture through `RenderFramebufferDesc::depthAttachment` when creating each present framebuffer.
+- Configure the custom `RenderGraphicsPipelineDesc` with `depthEnabled = true`, `depthWriteEnabled = true`, `depthFunction = RenderComparisonFunction::LESS`, and `depthTargetFormat = RenderFormat::D32_FLOAT`.
+- Record `clearDepthStencil(true, false, 1.0f, 0)` at the start of the custom pass.
 - Keep the game's color blit as the background, then draw opaque custom geometry with depth testing/writes enabled.
 - Recreate depth textures and framebuffers on swapchain resize.
 - Respect the existing frames-in-flight lifetime and never reuse a depth resource while its frame is in flight.
@@ -80,3 +81,8 @@ Do not call this milestone complete until:
 - The upstream documented baseline is A14/iPhone 12; the project's iPhone 11/A13 target is below that baseline and must be treated as experimental.
 - The iOS runtime shell build is not a playable game and does not contain game code or game data.
 - Keep all Rockstar-derived game data, generated game code, game shaders, and private game libraries out of the repository and CI artifacts.
+
+
+## Verified Plume depth API
+
+The pinned `plume_render_interface_types.h` defines `RenderTextureDesc::DepthTarget(...)`, `RenderFormat::D32_FLOAT`, `RenderFramebufferDesc::depthAttachment`, and the pipeline fields `depthEnabled`, `depthWriteEnabled`, `depthFunction`, and `depthTargetFormat`. The command-list interface exposes `clearDepthStencil(...)`. These are present in the pinned API; actual D32 support and the required transition/layout behavior still need to be validated on the iOS MoltenVK device.
