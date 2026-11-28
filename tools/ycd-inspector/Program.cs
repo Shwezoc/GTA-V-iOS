@@ -34,17 +34,17 @@ if (args.Length > 0 && args[0] == "--pack-bmw-dlc")
     }
 
     var source = Path.GetFullPath(args[1]);
-    var output = Path.GetFullPath(args[2]);
+    var dlcOutputPath = Path.GetFullPath(args[2]);
     var root = Path.Combine(source, "bmw-assets");
     var metadata = Path.Combine(root, "common", "data");
     var vehicleSource = Path.Combine(root, "x64", "levels", "gta5", "vehicles", "vehicles.rpf");
     var modSource = Path.Combine(root, "x64", "bmwm5f90_mods.rpf");
 
-    Directory.CreateDirectory(Path.GetDirectoryName(output)!);
-    if (File.Exists(output))
-        File.Delete(output);
+    Directory.CreateDirectory(Path.GetDirectoryName(dlcOutputPath)!);
+    if (File.Exists(dlcOutputPath))
+        File.Delete(dlcOutputPath);
 
-    var dlc = RpfFile.CreateNew(Path.GetDirectoryName(output)!, Path.GetFileName(output), RpfEncryption.OPEN);
+    var dlc = RpfFile.CreateNew(Path.GetDirectoryName(dlcOutputPath)!, Path.GetFileName(dlcOutputPath), RpfEncryption.OPEN);
     AddFile(dlc.Root, Path.Combine(root, "content.xml"), "content.xml");
     AddFile(dlc.Root, Path.Combine(root, "setup2.xml"), "setup2.xml");
 
@@ -107,7 +107,7 @@ if (args.Length > 0 && args[0] == "--pack-bmw-dlc")
             "The generated DLC binary is intentionally not uploaded as a public CI artifact."
         }
     };
-    Console.WriteLine(JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
+    Console.WriteLine(JsonSerializer.Serialize(dlcReport, new JsonSerializerOptions { WriteIndented = true }));
     return 0;
 }
 
