@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#080d13">
+<title>SHWEZOV — Franklin & BMW Drive Test</title>
+<link rel="stylesheet" href="./drive-test.css">
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
+</head>
+<body>
+<canvas id="world"></canvas>
+<header class="topbar"><a href="./index.html">← LAB</a><div><b>FRANKLIN × BMW M5 F90</b><small>INTERACTIVE 3D SCENE TEST</small></div><span id="load-state">ЗАГРУЗКА…</span></header>
+<div class="mission"><small>FREE ROAM · TEST BUILD</small><strong id="objective">Загрузка моделей…</strong><span id="detail">Подготовка 3D-сцены</span></div>
+<div class="crosshair"></div>
+<div class="touch-ui">
+  <div id="stick" class="stick"><div id="knob" class="knob"></div></div>
+  <div class="drive-buttons">
+    <button id="enter" class="enter" disabled>СЕСТЬ <small>В BMW · E</small></button>
+    <div class="pedals"><button id="brake">ТОРМОЗ</button><button id="gas">ГАЗ</button></div>
+    <div class="steer"><button id="left">◀</button><button id="right">▶</button></div>
+  </div>
+</div>
+<div class="help">ПЕШКОМ: WASD · БЕГ: SHIFT · СЕСТЬ/ВЫЙТИ: E · В МАШИНЕ: WASD</div>
+<div id="error" hidden></div>
+<script type="module" src="./drive-test.js"></script>
+</body></html>
