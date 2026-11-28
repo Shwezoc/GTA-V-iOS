@@ -133,7 +133,7 @@ new file mode 100644
 index 0000000..0000000
 --- /dev/null
 +++ b/gtav/src/native/shaders/native_scene_probe.hlsl
-@@ -0,0 +1,45 @@
+@@ -0,0 +1,44 @@
 +struct SceneProbeVertex {
 +    float4 position : SV_Position;
 +    float3 color : COLOR0;
