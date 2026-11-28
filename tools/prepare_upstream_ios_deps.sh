@@ -73,11 +73,6 @@ apply_once "$PLUME" "$PATCHES/plume-gtav.patch"
 clone_pinned "https://github.com/hedge-dev/XenosRecomp.git" "$XENOS" "990d03b"
 apply_once "$XENOS" "$PATCHES/xenosrecomp-gtav.patch"
 
-# Apply the depth-tested Plume 3D cube bring-up to the pinned upstream RAGE present pass; keep this patch idempotent. Validate corrected unified diff before applying.
-apply_once "$UPSTREAM" "$ROOT/patches/rage-scene-probe.patch"
-grep -q "DrawSceneProbe" "$UPSTREAM/gtav/src/native/backend.cpp"
-grep -q "scene_probe_depth_" "$UPSTREAM/gtav/src/native/renderer.cpp"
-
 echo
-echo "Third-party source trees are pinned and patched; RAGE scene probe patch syntax checked before apply."
+echo "Third-party source trees are pinned and patched for the upstream iOS shell build."
 echo "This is dependency preparation only; it does not build the iOS runtime or include GTA V data."
