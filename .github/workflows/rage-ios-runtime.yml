@@ -38,6 +38,15 @@ jobs:
       - name: Prepare pinned third-party sources and patches
         run: sh tools/prepare_upstream_ios_deps.sh
 
+      - name: Validate local-only game library build helper
+        run: |
+          set -euo pipefail
+          bash -n tools/build_local_ios_game_dylib.sh
+          test -f upstream/gtav-recomp/tools/game_dll/build_game_dll.py
+          test -f upstream/gtav-recomp/tools/game_dll/libSystem_ios.tbd
+          grep -q -- '--ios' tools/build_local_ios_game_dylib.sh
+          grep -q 'No game data or generated source will be uploaded' tools/build_local_ios_game_dylib.sh
+
       - name: Build macOS host SDK (provides rexglue code generator)
         working-directory: upstream/gtav-recomp/rexglue-sdk
         run: |
