@@ -10,6 +10,7 @@ on:
       - "tools/tests/test_audit_generated_filesystem.py"
       - "tools/tests/test_rpf7_inspect.py"
       - "tools/build_local_ios_game_dylib.sh"
+      - "patches/ios-game-dylib-cpu-target.patch"
   workflow_dispatch:
 
 permissions:
@@ -29,6 +30,8 @@ jobs:
         run: |
           set -euo pipefail
           bash -n tools/build_local_ios_game_dylib.sh
+          bash -n tools/prepare_upstream_ios_deps.sh
+          grep -q "IOS_CPU_TARGET" tools/build_local_ios_game_dylib.sh
           python3 -m py_compile tools/audit_generated_filesystem.py tools/rpf7-inspect.py
           python3 -m unittest discover -s tools/tests -p "test_*.py" -v
 
@@ -45,6 +48,10 @@ jobs:
           test -f "$UPSTREAM/tools/game_dll/build_game_dll.py"
           test -f "$UPSTREAM/tools/game_dll/libSystem_ios.tbd"
           test -f "$UPSTREAM/tools/game_dll/gen_interface.py"
+          git -C "$UPSTREAM" apply --check "$GITHUB_WORKSPACE/patches/ios-game-dylib-cpu-target.patch"
+          git -C "$UPSTREAM" apply "$GITHUB_WORKSPACE/patches/ios-game-dylib-cpu-target.patch"
+          grep -q "GTAV_IOS_CPU_TARGET" "$UPSTREAM/tools/game_dll/build_game_dll.py"
+          grep -q "apple-a13" "$UPSTREAM/tools/game_dll/build_game_dll.py"
           bash -n "$UPSTREAM/tools/ios/make_shell.sh"
           bash -n "$UPSTREAM/tools/ios/make_spirv.sh"
           bash -n "$UPSTREAM/tools/ios/make_app.sh"
@@ -59,6 +66,7 @@ jobs:
             echo "- iOS docs: present"
             echo "- Shell, shader, packaging and deploy scripts: present and syntax-checked"
             echo "- Game library builder and interface generator: present and Python-compiled"
+            echo "- Local iOS game library builder accepts explicit A13/A14/A15 CPU targets (A14 default)"
             echo
             echo "## Required owner-provided inputs"
             echo
