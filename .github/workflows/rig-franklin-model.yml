@@ -227,6 +227,21 @@ jobs:
             "xml=$WORKSPACE_WIN/work/niko-decoded/move_m@wfire@nikowalk.ycd.xml" \
             "skeleton=$TEMP_WIN/mp_m_skeleton.json" \
             "out=$WORKSPACE_WIN/work/output/niko-animated"
+          test -s work/output/niko-animated/franklin_niko_animated.glb
+          test -s work/output/niko-animated/franklin_niko_animated.blend
+          test -s work/output/niko-animated/franklin_niko_retarget_report.json
+          python - <<'PY'
+          import json, pathlib
+          report = json.loads(pathlib.Path("work/output/niko-animated/franklin_niko_retarget_report.json").read_text())
+          if not report.get("ok"):
+              raise SystemExit("Retarget report did not mark the export successful")
+          glb = report.get("glb", {})
+          if glb.get("skinCount", 0) < 1 or glb.get("animationCount", 0) < 1:
+              raise SystemExit(f"GLB validation failed: {glb}")
+          if report.get("unmatchedBoneIds"):
+              raise SystemExit(f"Unmatched animation bone IDs: {report['unmatchedBoneIds']}")
+          print("FRANKLIN_NIKO_ANIMATED_GLB_VALID", json.dumps(glb))
+          PY
 
       - name: Upload rigged GTA resource and diagnostic report
         if: always()
