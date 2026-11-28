@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        cpu_target: [apple-a14]
+        cpu_target: [apple-a14, apple-a13]
     timeout-minutes: 120
     steps:
       - name: Checkout pinned upstream source
