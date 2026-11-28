@@ -39,6 +39,10 @@ jobs:
           repository: ${{ github.repository }}
           path: work/franklin-source
 
+      - name: Test RPF7 index inspector
+        shell: pwsh
+        run: python -m unittest discover -s tools/tests -p "test_*.py" -v
+
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -71,6 +75,10 @@ jobs:
           if ($report.status -ne "pass" -or -not $report.codeWalkerRoundTrip) {
             throw "CodeWalker RPF7 round-trip validation did not pass"
           }
+          python tools/rpf7-inspect.py work/out/dlc.rpf --json | Out-File -FilePath work/rpf7-index-report.json -Encoding utf8
+          $index = Get-Content "work/rpf7-index-report.json" -Raw | ConvertFrom-Json
+          if ($index.status -ne "pass" -or $index.fileCount -lt 1) { throw "Independent RPF7 TOC inspection failed" }
+          Write-Host "INDEPENDENT_RPF7_INDEX_VALID files=$($index.fileCount) resources=$($index.resourceCount) binary=$($index.binaryCount)"
           Write-Host "MOBILE_SLICE_RPF7_VALID bytes=$($report.bytes) resources=$($report.resourceCount) vehicleResources=$($report.vehicleResourceCount) modParts=$($report.vehicleModPartCount) franklinPedResources=$($report.franklinPedResourceCount)"
           $report | ConvertTo-Json -Depth 8 | Write-Host
           Remove-Item "work/out/dlc.rpf" -Force
