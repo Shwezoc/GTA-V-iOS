@@ -1,6 +1,6 @@
 # Custom 3D scene pass in the upstream RAGE/Plume renderer
 
-Status: implementation design verified against the pinned upstream sources; no custom pass is implemented yet.
+Status: native RAGE present-pass patch is implemented in `patches/rage-scene-probe.patch`; the first diagnostic cube and per-swapchain-image D32 depth attachments are awaiting iOS CI compilation and runtime validation. This is not yet a GLB importer or BMW integration.
 
 Pinned revisions:
 - GTAV/ReXGlue: `andrewnakas/gtav-recomp@2a76184f563e4b604a88bea8eeed1334e77f3220`
@@ -28,11 +28,10 @@ The proposed pass is therefore a native Plume scene pass hosted by the RAGE rend
 
 ### Stage 1 — Plume geometry proof
 
-- Add a small pass owned by the native renderer/backend and initialized with the existing `plume::RenderDevice`.
-- Create a graphics pipeline using the active `RenderInterface` shader format (Metal on Apple where supported, SPIR-V for the Vulkan path).
-- Upload a tiny indexed mesh through Plume vertex/index buffers.
-- Record a draw on the existing present command list after the game blit.
-- Validate a stable visible mesh and frame progression before adding asset parsing.
+- Implemented: `Backend::DrawSceneProbe` creates a Plume graphics pipeline and draws a procedural 36-vertex cube from `SV_VertexID` in the existing RAGE present command list, after the guest front-buffer blit.
+- Implemented: each swapchain image receives a matching D32 depth texture attached to its present framebuffer; the custom pass transitions and clears depth immediately before drawing.
+- Pending: compile the patch in the iOS RAGE CI jobs, confirm the D32 target and SPIR-V shader are accepted by the iOS MoltenVK device, and capture a stable rendered cube.
+- Next: replace the procedural shader-generated vertices with an uploaded mesh, then introduce the GLB asset loader.
 
 The pinned Plume `examples/triangle/main.cpp` and `examples/cube/main.cpp` demonstrate the relevant API families: `createPipelineLayout`, `createShader`, `createGraphicsPipeline`, `createBuffer`, `setGraphicsPipelineLayout`, `setPipeline`, `setVertexBuffers`, and `drawInstanced`.
 
