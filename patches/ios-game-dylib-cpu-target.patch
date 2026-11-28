@@ -1,0 +1,13 @@
+diff --git a/tools/game_dll/build_game_dll.py b/tools/game_dll/build_game_dll.py
+--- a/tools/game_dll/build_game_dll.py
++++ b/tools/game_dll/build_game_dll.py
+@@ -97,5 +97,8 @@
+         cxxflags, ext = CXXFLAGS_MACOS, ".o"
+         if a.ios:
++            ios_cpu_target = os.environ.get("GTAV_IOS_CPU_TARGET", "apple-a14")
++            if ios_cpu_target not in {"apple-a13", "apple-a14", "apple-a15"}:
++                ap.error("GTAV_IOS_CPU_TARGET must be apple-a13, apple-a14, or apple-a15")
+             cxxflags = [f for f in cxxflags if not f.startswith(("--target=", "-mcpu="))] + \
+-                ["--target=arm64-apple-ios17.0", "-mcpu=apple-a14"]
++                ["--target=arm64-apple-ios17.0", f"-mcpu={ios_cpu_target}"]
+     elif LINUX:
