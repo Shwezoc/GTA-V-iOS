@@ -73,7 +73,7 @@ apply_once "$PLUME" "$PATCHES/plume-gtav.patch"
 clone_pinned "https://github.com/hedge-dev/XenosRecomp.git" "$XENOS" "990d03b"
 apply_once "$XENOS" "$PATCHES/xenosrecomp-gtav.patch"
 
-# Apply the first Plume geometry-pass bring-up to the pinned upstream RAGE present pass.
+# Apply the first Plume geometry-pass bring-up to the pinned upstream RAGE present pass; keep this patch idempotent.
 apply_once "$UPSTREAM" "$ROOT/patches/rage-scene-probe.patch"
 
 echo
