@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#080d13">
+<title>BMW M5 F90 — RAGE Asset Viewer</title>
+<link rel="stylesheet" href="./bmw-viewer.css">
+<script type="importmap">
+{"imports":{"three":"./vendor/three.module.js"}}
+</script>
+</head>
+<body>
+<canvas id="viewport" aria-label="3D модель BMW M5 F90"></canvas>
+<header class="viewer-header">
+  <a class="viewer-back" href="./index.html">← НАЗАД В LAB</a>
+  <div class="viewer-title">BMW M5 F90 <span>RAGE ASSET VIEWER</span></div>
+  <div id="load-state" class="viewer-state">ЗАГРУЗКА GLB…</div>
+</header>
+<section class="viewer-info">
+  <div class="viewer-kicker">GTA V RESOURCE CONVERSION</div>
+  <div class="viewer-model">BMW M5 F90 · HIGH DETAIL</div>
+  <div class="viewer-stats">274 642 ТРЕУГОЛЬНИКА · 153 ГЕОМЕТРИИ · 111 ТЕКСТУР В YTD</div>
+  <div class="viewer-note">Модель извлечена из RPF7 и преобразована из YFT/YTD в GLB через rage-formats и rage-render. Это просмотр реального ресурса, не игровой RAGE runtime.</div>
+</section>
+<div class="viewer-controls">
+  <button id="reset-view">СБРОС ВИДА</button>
+  <button id="auto-rotate" class="active">АВТОВРАЩЕНИЕ: ВКЛ</button>
+</div>
+<div class="viewer-help">ПЕРЕТАСКИВАЙ ДЛЯ ОБЗОРА · СВАЙП ДВУМЯ ПАЛЬЦАМИ / КОЛЁСИКО — МАСШТАБ</div>
+<script type="module" src="./bmw-viewer.js"></script>
+</body>
+</html>
