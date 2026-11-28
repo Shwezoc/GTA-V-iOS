@@ -27,6 +27,10 @@ The upstream documentation states that the game-specific iOS library and shaders
 
 See [the repository's native runtime status and hardware limits](docs/REAL_IOS_RUNTIME_STATUS.md), [the repository's staged runtime build gates](docs/BUILDING_REAL_IOS_RUNTIME.md), [the pinned upstream iOS build notes](https://github.com/andrewnakas/gtav-recomp/blob/2a76184f563e4b604a88bea8eeed1334e77f3220/docs/IOS_PORT.md) and [the upstream project README](https://github.com/andrewnakas/gtav-recomp/tree/2a76184f563e4b604a88bea8eeed1334e77f3220).
 
+## Hardware compatibility warning
+
+The upstream iOS development baseline is A14 (iPhone 12) or newer. The iPhone 11 uses A13 and is below that documented baseline. An A13-targeted shell compile is experimental and does not establish runtime compatibility. See [native runtime status and hardware limits](docs/REAL_IOS_RUNTIME_STATUS.md) before attempting installation.
+
 ## Layout
 - `ios/` — native iOS prototype shell
 - `engine/` — portable C++ frame/input scaffolding
