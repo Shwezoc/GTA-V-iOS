@@ -1,0 +1,65 @@
+name: RAGE iOS pipeline audit
+
+on:
+  push:
+    branches: [minimal-runtime]
+    paths:
+      - ".github/workflows/rage-ios-pipeline-audit.yml"
+      - "upstream/gtav-recomp"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit-ios-pipeline:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - name: Checkout pinned project and upstream submodule
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Verify upstream iOS build pipeline
+        shell: bash
+        run: |
+          set -euo pipefail
+          UPSTREAM="$GITHUB_WORKSPACE/upstream/gtav-recomp"
+          test -f "$UPSTREAM/docs/IOS_PORT.md"
+          test -f "$UPSTREAM/tools/ios/make_shell.sh"
+          test -f "$UPSTREAM/tools/ios/make_spirv.sh"
+          test -f "$UPSTREAM/tools/ios/make_app.sh"
+          test -f "$UPSTREAM/tools/ios/deploy.sh"
+          test -f "$UPSTREAM/tools/game_dll/build_game_dll.py"
+          test -f "$UPSTREAM/tools/game_dll/libSystem_ios.tbd"
+          test -f "$UPSTREAM/tools/game_dll/gen_interface.py"
+          bash -n "$UPSTREAM/tools/ios/make_shell.sh"
+          bash -n "$UPSTREAM/tools/ios/make_spirv.sh"
+          bash -n "$UPSTREAM/tools/ios/make_app.sh"
+          bash -n "$UPSTREAM/tools/ios/deploy.sh"
+          python3 -m py_compile "$UPSTREAM/tools/game_dll/build_game_dll.py"
+          python3 -m py_compile "$UPSTREAM/tools/game_dll/gen_interface.py"
+          {
+            echo "# RAGE iOS pipeline audit"
+            echo
+            echo "- Project commit: $(git rev-parse HEAD)"
+            echo "- Upstream commit: $(git -C "$UPSTREAM" rev-parse HEAD)"
+            echo "- iOS docs: present"
+            echo "- Shell, shader, packaging and deploy scripts: present and syntax-checked"
+            echo "- Game library builder and interface generator: present and Python-compiled"
+            echo
+            echo "## Required owner-provided inputs"
+            echo
+            echo "The game-specific library and game shaders are generated from a compatible, locally owned game installation. This audit deliberately does not download, contain, or publish proprietary game data, generated game code, shader caches, or an IPA."
+            echo
+            echo "## Next build gate"
+            echo
+            echo "Run the upstream Build for iPhone pipeline in a private environment with the owner's compatible game installation, LLVM toolchain, shader cache and signing identity."
+          } | tee "$RUNNER_TEMP/RAGE-IOS-PIPELINE-AUDIT.md"
+
+      - name: Upload pipeline audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: rage-ios-pipeline-audit
+          path: ${{ runner.temp }}/RAGE-IOS-PIPELINE-AUDIT.md
