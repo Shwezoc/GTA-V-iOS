@@ -1,48 +1,55 @@
 # Real GTA V iOS runtime: build gates
 
-This document separates a diagnostic IPA from an actual GTA V runtime build.
+This document distinguishes the upstream native runtime from the lightweight content scope planned by this project.
 
-## Current state in this repository
+## Verified current state
 
-- `ios/App.swift` and `ios/MetalRenderer.swift` are a SwiftUI/Metal diagnostic shell.
-- The current GitHub Actions workflow builds that shell only. Its IPA is **not GTA V** and must not be presented as a playable game build.
-- `upstream/gtav-recomp` is pinned to `2a76184f563e4b604a88bea8eeed1334e77f3220`; the upstream iOS host, renderer, SDL/UIKit setup and game-data installer exist there.
-- The upstream host is not yet linked into this repository's Xcode target.
+- The repository contains a native iOS shell and a separate upstream RAGE/recompilation build workflow.
+- The upstream submodule is pinned to `andrewnakas/gtav-recomp` commit `2a76184f563e4b604a88bea8eeed1334e77f3220`.
+- The cloud macOS workflow `RAGE iOS Runtime Shell (no game data)` has successfully built the upstream arm64 iOS host shell, ReXGlue runtime libraries and MoltenVK.
+- The resulting unsigned shell is not a playable GTA V app: it has no generated `gtav_game.dylib`, game-derived SPIR-V, game data or signing profile.
+- Franklin and BMW assets are processed separately and pass the structural asset audit; see [LIGHTWEIGHT_PORT_SCOPE.md](LIGHTWEIGHT_PORT_SCOPE.md).
+
+## User-side device constraint
+
+The user has an iPhone only. **No local Mac or Windows PC is assumed.**
+
+The open-source host/runtime build can run on GitHub Actions' cloud macOS runner. The next challenge is to move the game-specific generation and shader translation into a private, ephemeral cloud workflow without placing game-derived files in public Git history or public artifacts.
+
+This cloud game-data workflow is not implemented yet. Do not claim that the current shell workflow already builds the game library.
+
+## Lightweight port vs upstream full installer
+
+The target is a small playable GTA V slice, not the full game world. We want to retain selected original gameplay systems and selected GTA V resources while streaming a limited area.
+
+The pinned upstream installer is currently not a lightweight install. Its default data installation expects Disc 2 files, Disc 1 install partitions and TU27, with roughly 15.4 GB of game data copied to the phone (plus translated shaders). The first slice cannot simply delete arbitrary RPF files: the required resources must be identified and tested against the actual game code.
+
+The static-recompilation code-generation step stages `default.xex` and TU `default.xexp` as executable/patch inputs. This is distinct from the full set of map, mission and vehicle assets. A potential slim mode therefore has two separate jobs:
+1. build the matching game library from the legally owned executable/patch inputs on a cloud macOS runner;
+2. implement and validate a selective resource installer/loader for the first playable area and its required assets.
 
 ## Runtime integration sequence
 
-1. Prepare the exact third-party trees and patches documented by upstream. The repository now contains `tools/prepare_upstream_ios_deps.sh`, which pins and patches:
-   - ReXGlue SDK: `rexglue/rexglue-sdk` at `f5337cd`, plus its recursive submodules and `rexglue-sdk-gtav-linux.patch`.
-   - SDL3 and FFmpeg inside the SDK, with `sdl3-gtav.patch` and `ffmpeg-gtav.patch`.
-   - Plume: `renderbag/plume` at `0ce184b`, recursive submodules, and `plume-gtav.patch`.
-   - XenosRecomp: `hedge-dev/XenosRecomp` at `990d03b`, recursive submodules, and `xenosrecomp-gtav.patch`.
-
-   Run it from the repository on a machine with Git:
-   ```sh
-   git submodule update --init --recursive
-   sh tools/prepare_upstream_ios_deps.sh
-   ```
-   The script is repeatable, refuses to overwrite dirty trees at an unexpected revision, and fetches source only. It does not download or package Rockstar game data.
-2. Build the iOS ReXGlue runtime for arm64 (iOS 17 deployment target).
-3. Build the GTA V host with `GTAV_GAME_DLL=ON` for the clean shell, and compile the native renderer's own shaders with the macOS DXC toolchain.
-4. Package the host with the iOS MoltenVK dynamic library and the SDK runtime libraries. This is still only the shell.
-5. On the owner's computer, generate the game library and translate game shaders from the owner's own Xbox 360 Disc 1, Disc 2 and TU27. Those generated outputs are Rockstar-derived and must stay private; they must never be committed or uploaded as CI artifacts.
-6. Package/sign the owner's local game library and shaders into the final IPA. The phone then installs the game data through the upstream iOS setup screen.
+1. Keep the upstream source revision and third-party dependency preparation pinned and reproducible.
+2. Build the native iOS host/runtime and verify its arm64 binaries and bundle metadata in cloud CI.
+3. Design a private game-code generation job that receives only the user's legally obtained matching inputs through a private, short-lived transfer. Do not store source inputs, generated C++, compiled game libraries or game shaders in the public repository or public artifacts.
+4. Determine the minimum resource set required for a small first playable area; add a selective data-install path only after the actual required files are known.
+5. Connect Franklin and BMW using native RAGE resource formats where supported. GLB remains an interchange/validation format unless the runtime's actual loader proves otherwise.
+6. Build/sign an installable iOS package using an appropriate Apple signing/sideloading workflow.
+7. Test on hardware. The upstream baseline is A14 or newer; iPhone 11/A13 remains experimental.
 
 ## Hard constraints
 
-- Upstream's documented iPhone build target is A14 / iPhone 12 or newer, iOS 17+. An iPhone 11 (A13) is below that published baseline; a successful build does not prove it will run.
-- The upstream iOS build requires a macOS/Xcode build environment for the iOS SDK, renderer shader compilation and the game-library build. An iPhone-only build is not supported by the upstream instructions.
-- A shell-only IPA cannot show the GTA V world. The first meaningful scene milestone is after the native host, game library and required SPIR-V shaders are all present.
-- Never put ISOs, TU27, extracted game assets, generated game C++, game libraries, game shaders, or a completed game IPA in this repository or public CI artifacts.
+- A successful shell compile is not a successful game-library build.
+- A successful game-library build is not proof that selected game data load.
+- A static asset preview is not a first frame from the actual GTA V runtime.
+- The current upstream iOS installer requires far more game content than the planned first slice. Selective installation is an engineering task, not a setting that already exists.
+- Never put ISOs, TU27 packages, extracted proprietary assets, generated game C++, compiled game libraries, game shaders, or a completed game IPA in public repository history or public CI artifacts.
 
-## Source of the build procedure
+## Pinned upstream references
 
-Use the pinned upstream files:
 - `docs/IOS_PORT.md`
 - `tools/ios/make_shell.sh`
 - `tools/ios/make_app.sh`
 - `tools/ios/make_spirv.sh`
-- `tools/release/build_release_macos.sh`
-
-This repository's source-audit script checks upstream source presence; it is not a runtime build test.
+- `tools/game_dll/build_game_dll.py`
