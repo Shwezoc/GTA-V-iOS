@@ -4,14 +4,25 @@ on:
   workflow_dispatch:
     inputs:
       archive_url:
-        description: HTTPS download link to ZIP (Dropbox direct link or Google Drive share link)
+        description: HTTPS download link to Franklin OBJ ZIP (Google Drive share link accepted)
         required: true
+        default: "https://drive.google.com/file/d/1qEngzGlQTGAGIYFcJMG4dCJ-F54Gg_Gr/view?usp=drivesdk"
+        type: string
+      niko_archive_url:
+        description: Google Drive share link to the Niko Walk Style ZIP archive
+        required: true
+        default: "https://drive.google.com/file/d/14nYmjvl2zGaikXFzoKjH0SFTdeNxnn4z/view?usp=drivesdk"
         type: string
       model_height:
         description: Target character height in metres
         required: true
         default: "1.83"
         type: string
+  push:
+    branches: [minimal-runtime]
+    paths:
+      - ".github/workflows/rig-franklin-model.yml"
+      - "tools/retarget_niko_animations.py"
 
 permissions:
   contents: read
@@ -29,9 +40,21 @@ jobs:
         with:
           python-version: '3.13'
 
+      - name: Set up .NET for CodeWalker YCD parser
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Fetch and build pinned CodeWalker YCD parser
+        shell: pwsh
+        run: |
+          git clone https://github.com/dexyfex/CodeWalker.git third_party/CodeWalker
+          git -C third_party/CodeWalker checkout 485d56bec00262ed7fa472261cce7bbc6202b96e
+          dotnet build tools/ycd-inspector/YcdInspector.csproj --configuration Release
+
       - name: Download and safely unpack Franklin OBJ package
         env:
-          ARCHIVE_URL: ${{ inputs.archive_url }}
+          ARCHIVE_URL: ${{ inputs.archive_url || 'https://drive.google.com/file/d/1qEngzGlQTGAGIYFcJMG4dCJ-F54Gg_Gr/view?usp=drivesdk' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -97,6 +120,38 @@ jobs:
           test -s work/input/franklin.obj
           find work/input -maxdepth 1 -type f -printf '%f %s bytes\n'
 
+      - name: Decode Niko walk-style YCD for retargeting
+        env:
+          NIKO_ARCHIVE_URL: ${{ inputs.niko_archive_url || 'https://drive.google.com/file/d/14nYmjvl2zGaikXFzoKjH0SFTdeNxnn4z/view?usp=drivesdk' }}
+        shell: pwsh
+        run: |
+          $url = $env:NIKO_ARCHIVE_URL.Trim()
+          if (-not $url.StartsWith("https://")) { throw "Niko archive URL must use HTTPS" }
+          python -m pip install --disable-pip-version-check gdown==5.2.0
+          if ($url -match 'drive\.google\.com') {
+            $fileId = $null
+            if ($url -match '/file/d/([A-Za-z0-9_-]+)') { $fileId = $Matches[1] }
+            elseif ($url -match '[?&]id=([A-Za-z0-9_-]+)') { $fileId = $Matches[1] }
+            if ([string]::IsNullOrWhiteSpace($fileId)) { throw "Could not extract Niko Google Drive file ID" }
+            python -m gdown $fileId -O "$env:RUNNER_TEMP/niko-walk-style.zip"
+          } else {
+            Invoke-WebRequest -Uri $url -OutFile "$env:RUNNER_TEMP/niko-walk-style.zip"
+          }
+          if ($LASTEXITCODE -ne 0) { throw "Niko archive download failed" }
+          $nikoRoot = "$env:RUNNER_TEMP/niko-walk-style"
+          New-Item -ItemType Directory -Force -Path $nikoRoot | Out-Null
+          Expand-Archive -LiteralPath "$env:RUNNER_TEMP/niko-walk-style.zip" -DestinationPath $nikoRoot -Force
+          $ycd = Get-ChildItem $nikoRoot -Recurse -File -Filter "move_m@wfire@nikowalk.ycd" | Select-Object -First 1
+          if (-not $ycd) { throw "Niko walk-style YCD resource was not found in the archive" }
+          $skeleton = "$env:RUNNER_TEMP/mp_m_skeleton.json"
+          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/B7Kompirine/muto-ped-rig/v0.3.2/data/template_mp_m.json" -OutFile $skeleton
+          $decoded = "$env:GITHUB_WORKSPACE/work/niko-decoded"
+          New-Item -ItemType Directory -Force -Path $decoded | Out-Null
+          dotnet run --configuration Release --project tools/ycd-inspector/YcdInspector.csproj -- "$($ycd.FullName)" $decoded $skeleton
+          if ($LASTEXITCODE -ne 0) { throw "Niko YCD decode failed" }
+          "NIKO_YCD_XML=$decoded/move_m@wfire@nikowalk.ycd.xml" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "MP_M_SKELETON=$skeleton" | Out-File -FilePath $env:GITHUB_ENV -Append
+
       - name: Install Blender 5.2.0
         shell: bash
         run: |
@@ -122,6 +177,9 @@ jobs:
           mkdir -p "$ADDONS"
           git clone --depth 1 --branch v0.3.2 https://github.com/B7Kompirine/muto-ped-rig.git "$ADDONS/muto_ped_rig"
           git clone --depth 1 --branch v2.9.0 https://github.com/Sollumz/Sollumz.git "$ADDONS/Sollumz"
+          git clone https://github.com/KhronosGroup/glTF-Blender-IO.git "$TEMP_DIR/gltf-blender-io"
+          git -C "$TEMP_DIR/gltf-blender-io" checkout 4e1feadcab042eb10ea935bfd442ebb51cdc9fb9
+          cp -R "$TEMP_DIR/gltf-blender-io/addons/io_scene_gltf2" "$ADDONS/io_scene_gltf2"
           test -f "$ADDONS/muto_ped_rig/bl/batch_worker.py"
           test -f "$ADDONS/Sollumz/__init__.py"
 
@@ -148,11 +206,30 @@ jobs:
             "ped=franklin" \
             "height=$MODEL_HEIGHT"
 
+      - name: Retarget Niko animations onto Franklin and export animated GLB
+        shell: bash
+        run: |
+          set -euo pipefail
+          TEMP_DIR="$(cygpath -u "$RUNNER_TEMP")"
+          WORKSPACE="$(cygpath -u "$GITHUB_WORKSPACE")"
+          ADDONS="$TEMP_DIR/blender/5.2/scripts/addons"
+          ADDONS_WIN="$(cygpath -m "$ADDONS")"
+          WORKSPACE_WIN="$(cygpath -m "$WORKSPACE")"
+          export CI=true
+          export PYTHONPATH="$ADDONS${PYTHONPATH:+:$PYTHONPATH}"
+          "$TEMP_DIR/blender/blender.exe" --background \
+            --python-expr "import sys,bpy; sys.path.insert(0, '$ADDONS_WIN'); bpy.utils.refresh_script_paths(); import Sollumz; bpy.ops.preferences.addon_enable(module='Sollumz'); import io_scene_gltf2; bpy.ops.preferences.addon_enable(module='io_scene_gltf2')" \
+            --python "$WORKSPACE_WIN/tools/retarget_niko_animations.py" -- \
+            "blend=$WORKSPACE_WIN/work/output/franklin.blend" \
+            "xml=$WORKSPACE_WIN/work/niko-decoded/move_m@wfire@nikowalk.ycd.xml" \
+            "skeleton=$TEMP_WIN/mp_m_skeleton.json" \
+            "out=$WORKSPACE_WIN/work/output/niko-animated"
+
       - name: Upload rigged GTA resource and diagnostic report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: franklin-freemode-male-gta-resource
+          name: franklin-niko-retargeted-animated-glb
           path: work/output/
           if-no-files-found: warn
           retention-days: 30
