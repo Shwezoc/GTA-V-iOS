@@ -43,9 +43,9 @@ jobs:
           python3 - <<'PY'
           import pathlib, zipfile
           archives = list(pathlib.Path("/tmp/franklin-transfer").rglob("*.zip"))
-if len(archives) != 1:
-    raise SystemExit("Expected exactly one ZIP from SwissTransfer API; found " + str(len(archives)))
-archive = archives[0]
+          if len(archives) != 1:
+              raise SystemExit("Expected exactly one ZIP from SwissTransfer API; found " + str(len(archives)))
+          archive = archives[0]
           root = pathlib.Path("work/unpacked").resolve()
           with zipfile.ZipFile(archive) as z:
               bad = z.testzip()
