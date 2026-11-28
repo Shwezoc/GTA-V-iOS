@@ -109,7 +109,7 @@ index 0000000..0000000 100644
 +      backend_.DrawSceneProbe(list_, kSwapchainFormat);
 +    }
 +    // FPS counter (PSDigits) over the bound framebuffer, top-left corner at (x, y).
-@@ -30404,10 +30404,15 @@
+@@ -674,10 +674,15 @@
    void CreateFramebuffers() {
      framebuffers_.clear();
 +    scene_probe_depth_.clear();
@@ -125,7 +125,7 @@ index 0000000..0000000 100644
 +      scene_probe_depth_.push_back(std::move(depth));
        framebuffers_.push_back(device_->createFramebuffer(desc));
      }
-@@ -75474,1 +75474,2 @@
+@@ -1590,1 +1590,2 @@
    std::vector<std::unique_ptr<plume::RenderFramebuffer>> framebuffers_;
 +  std::vector<std::unique_ptr<plume::RenderTexture>> scene_probe_depth_;
 diff --git a/gtav/src/native/shaders/native_scene_probe.hlsl b/gtav/src/native/shaders/native_scene_probe.hlsl
