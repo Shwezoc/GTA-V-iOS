@@ -85,7 +85,7 @@ jobs:
             $zip.Dispose()
   $zip = $null
   [System.IO.Compression.ZipFile]::ExtractToDirectory($archives[0].FullName, $nikoSrc)
-          } finally { $zip.Dispose() }
+          } finally { if ($null -ne $zip) { $zip.Dispose() } }
       - name: Decode all supplied YCD resources
         shell: pwsh
         run: |
