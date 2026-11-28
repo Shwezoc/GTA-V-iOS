@@ -53,8 +53,9 @@ jobs:
           set -euo pipefail
           python3 -m http.server 4173 --directory browser >/tmp/bmw-viewer-http.log 2>&1 &
           echo $! >/tmp/bmw-viewer-http.pid
+          trap 'kill "$(cat /tmp/bmw-viewer-http.pid)" 2>/dev/null || true; cat /tmp/bmw-viewer-http.log || true' EXIT
           for i in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:4173/bmw-viewer.html >/dev/null; then break; fi
+            if curl -fsS http://127.0.0.1:4173/bmw-viewer.html >/dev/null 2>&1; then break; fi
             sleep 1
           done
           node --input-type=module <<'NODE'
@@ -65,27 +66,32 @@ jobs:
           });
           const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
           const errors = [];
+          const failedRequests = [];
           page.on("pageerror", e => errors.push(e.message));
           page.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
+          page.on("requestfailed", r => failedRequests.push(r.url() + ": " + (r.failure()?.errorText || "failed")));
+          page.on("response", r => { if (r.status() >= 400) failedRequests.push(r.status() + " " + r.url()); });
           await page.goto("http://127.0.0.1:4173/bmw-viewer.html", { waitUntil: "domcontentloaded" });
-          await page.waitForFunction(
-            () => document.querySelector("#load-state")?.textContent === "МОДЕЛЬ ЗАГРУЖЕНА",
-            undefined,
-            { timeout: 90000 }
-          );
-          await page.waitForTimeout(1200);
-          const canvas = await page.locator("#viewport").evaluate(el => ({
-            width: el.width,
-            height: el.height,
-            webgl2: !!el.getContext("webgl2")
-          }));
-          if (!canvas.width || !canvas.height || !canvas.webgl2) throw new Error("WebGL2 canvas did not initialize: " + JSON.stringify(canvas));
+          await page.waitForTimeout(12000);
+          const diag = await page.evaluate(() => {
+            const c = document.querySelector("#viewport");
+            return {
+              state: document.querySelector("#load-state")?.textContent,
+              canvas: { width: c?.width, height: c?.height },
+              webgl2: (() => { try { return !!c?.getContext("webgl2"); } catch { return false; } })(),
+              moduleScript: document.querySelector('script[type="module"]')?.getAttribute("src")
+            };
+          });
+          if (diag.state !== "МОДЕЛЬ ЗАГРУЖЕНА" || !diag.webgl2 || !diag.canvas.width || !diag.canvas.height) {
+            throw new Error("BMW GLB viewer did not reach rendered state. Diagnostics: " + JSON.stringify({diag, errors, failedRequests}));
+          }
+          if (errors.length || failedRequests.length) {
+            throw new Error("Browser errors: " + JSON.stringify({errors, failedRequests}));
+          }
           await page.screenshot({ path: "bmw-viewer-smoke.png", fullPage: false });
-          if (errors.length) throw new Error("Browser console errors: " + errors.join(" | "));
-          console.log("BMW M5 F90 GLB loaded and rendered in Chromium: " + JSON.stringify(canvas));
+          console.log("BMW M5 F90 GLB loaded and rendered in Chromium: " + JSON.stringify(diag));
           await browser.close();
           NODE
-          kill "$(cat /tmp/bmw-viewer-http.pid)" || true
 
       - name: Publish browser build
         uses: actions/upload-pages-artifact@v3
